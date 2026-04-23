@@ -96,11 +96,11 @@ class CC_Engine:
                     matches[match_id] = []
                 matches[match_id].append(opp)
 
-            # Para cada partido, asegurar que tenemos 6 opciones (rellenando con simuladas)
+            # Para cada partido, asegurar que tenemos 10 opciones (rellenando con simuladas)
             final_opps = []
             for match_id, opps in matches.items():
                 existing_markets = {o.market_category for o in opps}
-                simulated_needed = 6 - len(opps)
+                simulated_needed = 10 - len(opps)
                 
                 # Coger una base
                 base = opps[0]
@@ -119,7 +119,7 @@ class CC_Engine:
                         opps.append(sim_opp)
                         added += 1
 
-                final_opps.extend(opps[:6])
+                final_opps.extend(opps[:10])
 
             self.current_state = final_opps
             self._is_real_data = True
