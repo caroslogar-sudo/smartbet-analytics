@@ -59,8 +59,8 @@ def get_random_soccer_market(home: str, away: str) -> tuple:
     player = random.choice(players)
     
     options = [
-        ("Corners Total", "corners", f"Over {corners_line} corners", (1.75, 2.10)),
-        ("Tarjetas Total", "tarjetas", f"Over {cards_line} tarjetas", (1.80, 2.20)),
+        ("Córners Total", "corners", f"Más de {corners_line} córners", (1.75, 2.10)),
+        ("Tarjetas Total", "tarjetas", f"Más de {cards_line} tarjetas", (1.80, 2.20)),
         ("Goleador", "goleador", f"{player} anota", (2.50, 4.00)),
         ("Ganador 1ª Parte", "parcial", "Empate al Descanso", (2.00, 2.30)),
     ]
