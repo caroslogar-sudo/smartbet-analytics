@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Clock, Trophy, AlertTriangle, Radio, Ghost } from 'lucide-react';
 import { Card } from '../atoms/Card';
 import { Badge } from '../atoms/Badge';
@@ -11,12 +11,46 @@ export const DirectosPage: React.FC = () => {
 
   useEffect(() => {
     const { unsubscribe } = firebaseService.subscribeToLiveScores((data) => {
-      setLiveMatches(data.live);
-      setFinishedMatches(data.finished);
+      // 1. Filtrar solo los que realmente están en juego (tienen scores y no están completados)
+      const trulyLive = data.live.filter(m => m.scores && m.scores.length > 0 && !m.completed);
+      
+      // 2. Lógica de limpieza de finalizados: desaparecen a las 14:00 del día siguiente
+      const now = new Date();
+      const filteredFinished = data.finished.filter(m => {
+        if (!m.last_update) return true;
+        const matchDate = new Date(m.last_update);
+        const nextDay14h = new Date(matchDate);
+        nextDay14h.setDate(nextDay14h.getDate() + 1);
+        nextDay14h.setHours(14, 0, 0, 0);
+        
+        return now < nextDay14h;
+      });
+
+      setLiveMatches(trulyLive);
+      setFinishedMatches(filteredFinished);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
+
+  // Agrupar por ligas para una mejor organización visual
+  const groupedLive = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    liveMatches.forEach(m => {
+      if (!groups[m.league]) groups[m.league] = [];
+      groups[m.league].push(m);
+    });
+    return groups;
+  }, [liveMatches]);
+
+  const groupedFinished = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    finishedMatches.forEach(m => {
+      if (!groups[m.league]) groups[m.league] = [];
+      groups[m.league].push(m);
+    });
+    return groups;
+  }, [finishedMatches]);
 
   return (
     <div style={{ padding: 'var(--space-lg) var(--space-xl) var(--space-xxl)' }}>
@@ -31,7 +65,7 @@ export const DirectosPage: React.FC = () => {
           alignItems: 'center',
           gap: 'var(--space-sm)'
         }}>
-          Panel de <span style={{ color: 'var(--color-danger)' }}>Directos</span>
+          Monitorización <span style={{ color: 'var(--color-danger)' }}>Smart 4-Track</span>
           <Radio color="var(--color-danger)" size={24} />
         </h1>
         <p style={{
@@ -41,66 +75,51 @@ export const DirectosPage: React.FC = () => {
           maxWidth: '800px',
           lineHeight: 1.6,
         }}>
-          Monitorización en tiempo real con <strong>Smart 4-Track</strong>. 
-          Realizamos exclusivamente 4 rastreos por parte para maximizar precisión y ahorro de API.
+          Los partidos solo aparecen cuando comienza la acción real. Los resultados finalizados se mantienen hasta las 14:00 del día siguiente.
         </p>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 'var(--space-xxl)', color: 'var(--color-text-secondary)' }}>
           <Activity size={32} style={{ animation: 'spin 2s linear infinite', marginBottom: 'var(--space-md)' }} />
-          <p>Conectando al motor de rastreo real...</p>
+          <p>Sincronizando trackers...</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xxl)' }}>
           
-          {/* Sección: Partidos en Directo */}
+          {/* Sección: Partidos en Juego */}
           <section>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
               <Clock size={20} color="var(--color-warning)" />
-              En Juego (Rastreo Activo)
+              En Juego (Ordenado por Liga)
             </h2>
             
-            {liveMatches.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-md)' }}>
-                {liveMatches.map(match => (
-                  <Card key={match.id} style={{ borderLeft: '4px solid var(--color-danger)', padding: 'var(--space-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
-                      <div style={{ animation: 'pulse 2s infinite' }}>
-                        <Badge variant="danger" text="LIVE" />
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                        {match.league}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-md) 0' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'right' }}>{match.home}</div>
-                      
-                      <div style={{ textAlign: 'center', margin: '0 var(--space-lg)' }}>
-                        {/* Solo mostrar marcador si el partido ya ha empezado (basado en timestamp o presencia de scores reales) */}
-                        {match.scores && match.scores.length > 0 ? (
-                          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+            {Object.keys(groupedLive).length > 0 ? (
+              Object.entries(groupedLive).map(([league, matches]) => (
+                <div key={league} style={{ marginBottom: 'var(--space-xl)' }}>
+                  <h3 style={{ fontSize: '0.9rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 'var(--space-md)', borderBottom: '1px solid var(--color-surface-borders)', paddingBottom: '4px' }}>
+                    {league}
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-md)' }}>
+                    {matches.map(match => (
+                      <Card key={match.id} style={{ borderLeft: '4px solid var(--color-danger)', padding: 'var(--space-md)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+                          <div style={{ animation: 'pulse 2s infinite' }}>
+                            <Badge variant="danger" text="LIVE" />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-md) 0' }}>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'right' }}>{match.home}</div>
+                          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)', margin: '0 var(--space-lg)' }}>
                             {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
                           </div>
-                        ) : (
-                          <div style={{ 
-                            backgroundColor: 'var(--color-background)', 
-                            padding: '4px 12px', 
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--color-surface-borders)'
-                          }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-                              {match.last_update ? new Date(match.last_update).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'left' }}>{match.away}</div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'left' }}>{match.away}</div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))
             ) : (
               <div style={{ 
                 padding: 'var(--space-xxl)', 
@@ -110,37 +129,44 @@ export const DirectosPage: React.FC = () => {
                 border: '1px dashed var(--color-surface-borders)',
                 color: 'var(--color-text-secondary)'
               }}>
-                <Ghost size={48} style={{ marginBottom: 'var(--space-md)', opacity: 0.3 }} />
-                <p style={{ margin: 0, fontWeight: 600 }}>No hay partidos en directo en este momento.</p>
-                <p style={{ fontSize: '0.8rem', marginTop: 'var(--space-xs)' }}>El motor Smart 4-Track está en espera para ahorrar créditos de API.</p>
+                <Ghost size={48} style={{ marginBottom: 'var(--space-md)', opacity: 0.2 }} />
+                <p style={{ margin: 0, fontWeight: 600 }}>Esperando el pitido inicial...</p>
+                <p style={{ fontSize: '0.8rem', marginTop: 'var(--space-xs)' }}>No hay partidos en juego en las ligas seleccionadas.</p>
               </div>
             )}
           </section>
 
           {/* Sección: Partidos Finalizados */}
-          {finishedMatches.length > 0 && (
+          {Object.keys(groupedFinished).length > 0 && (
             <section>
-              <h2 style={{ fontSize: '1.2rem', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+              <h2 style={{ fontSize: '1.2rem', marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                 <Trophy size={20} color="var(--color-success)" />
-                Finalizados (Hoy)
+                Resultados Finalizados
               </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-md)' }}>
-                {finishedMatches.map(match => (
-                  <Card key={match.id} style={{ padding: 'var(--space-md)', opacity: 0.85 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
-                      <Badge variant="success" text="FINALIZADO" />
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{match.league}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-sm) 0' }}>
-                      <div style={{ fontSize: '1rem', fontWeight: 600, flex: 1, textAlign: 'right' }}>{match.home}</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 var(--space-md)' }}>
-                        {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
-                      </div>
-                      <div style={{ fontSize: '1rem', fontWeight: 600, flex: 1, textAlign: 'left' }}>{match.away}</div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+              {Object.entries(groupedFinished).map(([league, matches]) => (
+                <div key={league} style={{ marginBottom: 'var(--space-xl)' }}>
+                  <h3 style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-sm)' }}>
+                    {league}
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-md)' }}>
+                    {matches.map(match => (
+                      <Card key={match.id} style={{ padding: 'var(--space-md)', opacity: 0.85 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+                          <Badge variant="success" text="FINALIZADO" />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-sm) 0' }}>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, flex: 1, textAlign: 'right' }}>{match.home}</div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 var(--space-md)' }}>
+                            {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
+                          </div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, flex: 1, textAlign: 'left' }}>{match.away}</div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))
+            }
             </section>
           )}
 
@@ -160,7 +186,7 @@ export const DirectosPage: React.FC = () => {
       }}>
         <AlertTriangle size={16} color="var(--color-primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-          <strong>Optimización Activa:</strong> Si no hay partidos de las ligas soportadas en curso, el sistema suspende los rastreos automáticamente para proteger tu cuota de API.
+          <strong>Lógica de Limpieza:</strong> El historial de resultados se reinicia automáticamente cada día a las 14:00 del día siguiente para mantener el panel limpio y enfocado.
         </p>
       </div>
 
