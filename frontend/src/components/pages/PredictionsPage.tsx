@@ -230,6 +230,8 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
             />
           </div>
         </div>
+      </div>
+
       {/* Sport Columns - Side by Side */}
       <div style={{
         display: 'flex',

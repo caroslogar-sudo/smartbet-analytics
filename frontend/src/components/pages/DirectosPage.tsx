@@ -112,7 +112,9 @@ export const DirectosPage: React.FC = () => {
               {MOCK_LIVE_MATCHES.map(match => (
                 <Card key={match.id} style={{ borderLeft: '4px solid var(--color-danger)', padding: 'var(--space-md)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
-                    <Badge variant="danger" style={{ animation: 'pulse 2s infinite' }}>{match.status}</Badge>
+                    <div style={{ animation: 'pulse 2s infinite' }}>
+                      <Badge variant="danger" text={match.status} />
+                    </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{match.trackStatus}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-md) 0' }}>
@@ -138,7 +140,7 @@ export const DirectosPage: React.FC = () => {
               {MOCK_FINISHED_MATCHES.map(match => (
                 <Card key={match.id} style={{ padding: 'var(--space-md)', opacity: 0.85 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
-                    <Badge variant="success">{match.status}</Badge>
+                    <Badge variant="success" text={match.status} />
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{match.trackStatus}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-sm) 0' }}>

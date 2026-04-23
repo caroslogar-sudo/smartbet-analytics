@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, PlusCircle, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, RefreshCw, TrendingUp } from 'lucide-react';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
 import { Badge } from '../atoms/Badge';
@@ -115,7 +115,7 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
               <div>
                 <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>Parlay {parlay.size} Selecciones</h3>
-                <Badge variant="success" style={{ fontSize: '0.75rem' }}>CC Promedio: {parlay.avgCc}%</Badge>
+                <Badge variant="success" text={`CC Promedio: ${parlay.avgCc}%`} />
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Cuota Total</div>
@@ -158,12 +158,12 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
                 if (onAddToDashboard) {
                   const combinedDesc = parlay.picks.map((p: any) => `${p.prediction} (${p.home})`).join(' + ');
                   onAddToDashboard({
-                    matchName: 'Apuesta Combinada (Parlay)',
-                    market: 'Múltiple',
+                    event: 'Apuesta Combinada (Parlay)',
+                    marketType: 'Múltiple',
                     prediction: combinedDesc,
                     odds: parlay.totalOdds,
                     sport: 'Varios',
-                    league: 'Combinada',
+                    ccAtBet: parlay.avgCc,
                   });
                 }
               }}
