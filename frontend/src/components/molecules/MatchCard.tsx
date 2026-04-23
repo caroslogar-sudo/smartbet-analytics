@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Prediction, MarketCategory } from '../../data/mockPredictions';
-import { MapPin, Clock, Trophy, Target, TrendingUp, BarChart2, Info, ChevronDown, ChevronUp, PlusCircle } from 'lucide-react';
+import { MapPin, Clock, BarChart2, Info, ChevronDown, ChevronUp, PlusCircle } from 'lucide-react';
 import type { BetFormData } from './BetRegistrationModal';
 
 interface MatchCardProps {
@@ -279,7 +279,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             onAddToDashboard({
                               event: `${home} vs ${away}`,
                               sport,
-                              marketType: MARKET_META[pred.market]?.label || pred.market,
+                              marketType: MARKET_META[pred.market_category]?.label || pred.market,
                               prediction: pred.prediction,
                               bookmaker: pred.bookmakerOdds[0]?.bookmaker || 'Bet365',
                               odds: pred.bookmakerOdds[0]?.odds || 1.50,

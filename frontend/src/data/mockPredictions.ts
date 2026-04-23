@@ -341,20 +341,38 @@ const motogpPredictions: Prediction[] = [
    EXPORTACIÓN FINAL
    ═══════════════════════════════════════════════════ */
 
+const groupByMatch = (preds: Prediction[]): MatchData[] => {
+  const map = new Map<string, MatchData>();
+  for (const p of preds) {
+    const matchId = `${p.home}-${p.away}-${p.matchDate}`;
+    if (!map.has(matchId)) {
+      map.set(matchId, {
+        matchId,
+        home: p.home,
+        away: p.away,
+        matchDate: p.matchDate,
+        predictions: [],
+      });
+    }
+    map.get(matchId)!.predictions.push(p);
+  }
+  return Array.from(map.values());
+};
+
 export const ALL_SPORTS_DATA: SportData[] = [
   {
     sportName: 'Fútbol',
     icon: '⚽',
     accentColor: '#34d399',
     leagues: [
-      { leagueName: 'Champions League', predictions: championsLeaguePredictions },
-      { leagueName: 'Europa League', predictions: europaLeaguePredictions },
-      { leagueName: 'Conference League', predictions: conferencePredictions },
-      { leagueName: 'La Liga', predictions: laLigaPredictions },
-      { leagueName: 'Premier League', predictions: premierPredictions },
-      { leagueName: 'Ligue 1', predictions: ligue1Predictions },
-      { leagueName: 'Bundesliga', predictions: bundesligaPredictions },
-      { leagueName: 'Primeira Liga', predictions: primeiraPredictions },
+      { leagueName: 'Champions League', matches: groupByMatch(championsLeaguePredictions) },
+      { leagueName: 'Europa League', matches: groupByMatch(europaLeaguePredictions) },
+      { leagueName: 'Conference League', matches: groupByMatch(conferencePredictions) },
+      { leagueName: 'La Liga', matches: groupByMatch(laLigaPredictions) },
+      { leagueName: 'Premier League', matches: groupByMatch(premierPredictions) },
+      { leagueName: 'Ligue 1', matches: groupByMatch(ligue1Predictions) },
+      { leagueName: 'Bundesliga', matches: groupByMatch(bundesligaPredictions) },
+      { leagueName: 'Primeira Liga', matches: groupByMatch(primeiraPredictions) },
     ]
   },
   {
@@ -362,8 +380,8 @@ export const ALL_SPORTS_DATA: SportData[] = [
     icon: '🏀',
     accentColor: '#fbbf24',
     leagues: [
-      { leagueName: 'ACB', predictions: acbPredictions },
-      { leagueName: 'NBA', predictions: nbaPredictions },
+      { leagueName: 'ACB', matches: groupByMatch(acbPredictions) },
+      { leagueName: 'NBA', matches: groupByMatch(nbaPredictions) },
     ]
   },
   {
@@ -371,7 +389,7 @@ export const ALL_SPORTS_DATA: SportData[] = [
     icon: '🏎️',
     accentColor: '#ef4444',
     leagues: [
-      { leagueName: 'GP Mónaco', predictions: f1Predictions },
+      { leagueName: 'GP Mónaco', matches: groupByMatch(f1Predictions) },
     ]
   },
   {
@@ -379,9 +397,9 @@ export const ALL_SPORTS_DATA: SportData[] = [
     icon: '🏍️',
     accentColor: '#a78bfa',
     leagues: [
-      { leagueName: 'Moto3', predictions: moto3Predictions },
-      { leagueName: 'Moto2', predictions: moto2Predictions },
-      { leagueName: 'MotoGP', predictions: motogpPredictions },
+      { leagueName: 'Moto3', matches: groupByMatch(moto3Predictions) },
+      { leagueName: 'Moto2', matches: groupByMatch(moto2Predictions) },
+      { leagueName: 'MotoGP', matches: groupByMatch(motogpPredictions) },
     ]
   },
 ];

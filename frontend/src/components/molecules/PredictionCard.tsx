@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Prediction, MarketCategory } from '../../data/mockPredictions';
-import { ChevronDown, ChevronUp, BookmarkPlus, TrendingUp, BarChart2, Info } from 'lucide-react';
+import { ChevronDown, ChevronUp, BookmarkPlus, BarChart2, Info } from 'lucide-react';
 import type { BetFormData } from '../molecules/BetRegistrationModal';
 
 interface PredictionCardProps {
@@ -98,13 +98,15 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   const handleAddToDashboard = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAddToDashboard?.({
+      event: `${prediction.home} vs ${prediction.away}`,
       sport,
-      competition: prediction.league,
-      match: `${prediction.home} vs ${prediction.away}`,
-      market: prediction.market,
+      marketType: MARKET_META[prediction.market_category]?.label || prediction.market,
       prediction: prediction.prediction,
-      odds: prediction.bestOdds,
       bookmaker: prediction.bestBookmaker,
+      odds: prediction.bestOdds,
+      stake: prediction.kelly_fraction ? Math.max(1, Math.round(prediction.kelly_fraction * 1000)) : 10,
+      result: 'pending',
+      ccAtBet: prediction.cc,
     });
   };
 
