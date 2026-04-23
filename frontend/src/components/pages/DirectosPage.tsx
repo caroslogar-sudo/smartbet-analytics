@@ -75,9 +75,27 @@ export const DirectosPage: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-md) 0' }}>
                       <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'right' }}>{match.home}</div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)', margin: '0 var(--space-lg)' }}>
-                        {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
+                      
+                      <div style={{ textAlign: 'center', margin: '0 var(--space-lg)' }}>
+                        {/* Solo mostrar marcador si el partido ya ha empezado (basado en timestamp o presencia de scores reales) */}
+                        {match.scores && match.scores.length > 0 ? (
+                          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                            {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            backgroundColor: 'var(--color-background)', 
+                            padding: '4px 12px', 
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--color-surface-borders)'
+                          }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+                              {match.last_update ? new Date(match.last_update).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                            </span>
+                          </div>
+                        )}
                       </div>
+
                       <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'left' }}>{match.away}</div>
                     </div>
                   </Card>
