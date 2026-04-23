@@ -80,6 +80,24 @@ class SportsDataService:
         return all_opportunities
 
     @staticmethod
+    async def fetch_live_scores() -> List[dict]:
+        if not ODDS_API_KEY:
+            return []
+
+        all_scores = []
+        async with httpx.AsyncClient() as client:
+            for league_key, _, _ in SUPPORTED_LEAGUES:
+                url = f"{ODDS_API_BASE}/{league_key}/scores/"
+                params = {"apiKey": ODDS_API_KEY, "daysFrom": 1}
+                try:
+                    resp = await client.get(url, params=params, timeout=10.0)
+                    if resp.status_code == 200:
+                        all_scores.extend(resp.json())
+                except Exception as e:
+                    logger.warning(f"Error scores {league_key}: {e}")
+        return all_scores
+
+    @staticmethod
     async def _fetch_league(
         client: httpx.AsyncClient,
         league_key: str,

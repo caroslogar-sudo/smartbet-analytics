@@ -75,6 +75,41 @@ export const firebaseService = {
   },
 
   /**
+   * Subscribe al documento realtime/live_scores (Directos y Resultados).
+   */
+  subscribeToLiveScores(
+    onData: (data: { live: any[], finished: any[] }) => void,
+    onError?: (error: Error) => void
+  ): FirestoreSubscriptionResult {
+    if (!db) {
+      return { unsubscribe: () => {}, isRealConnection: false };
+    }
+
+    const liveScoresRef = doc(db, "realtime", "live_scores");
+
+    const unsubscribe = onSnapshot(
+      liveScoresRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          onData({
+            live: data.live || [],
+            finished: data.finished || []
+          });
+        } else {
+          onData({ live: [], finished: [] });
+        }
+      },
+      (error) => {
+        console.error("Firestore LiveScores Error:", error);
+        onError?.(error);
+      }
+    );
+
+    return { unsubscribe, isRealConnection: true };
+  },
+
+  /**
    * Subscribe a la colección de oportunidades ordenadas por CC descendente.
    */
   subscribeToAllOpportunities(

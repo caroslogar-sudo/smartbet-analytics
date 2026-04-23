@@ -90,25 +90,27 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
         gap: 'var(--space-lg)' 
       }}>
         {parlays.map((parlay, idx) => (
-          <Card key={parlay.id} style={{ 
+            <Card key={parlay.id} style={{ 
             padding: 'var(--space-lg)',
             border: idx === 0 ? '2px solid var(--color-primary)' : undefined,
-            position: 'relative'
+            position: 'relative',
+            overflow: 'visible'
           }}>
             {idx === 0 && (
               <div style={{ 
                 position: 'absolute', 
-                top: '-12px', 
+                top: '-15px', 
                 right: '16px',
                 backgroundColor: 'var(--color-primary)',
                 color: 'white',
-                padding: '4px 12px',
+                padding: '6px 14px',
                 borderRadius: 'var(--radius-full)',
                 fontSize: '0.75rem',
                 fontWeight: 800,
-                boxShadow: 'var(--shadow-md)'
+                boxShadow: 'var(--shadow-glow)',
+                zIndex: 10
               }}>
-                ⭐ BEST CHOICE
+                ⭐ LA MEJOR OPCIÓN
               </div>
             )}
             

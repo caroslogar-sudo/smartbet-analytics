@@ -66,6 +66,19 @@ class FirebaseWrapper:
         })
 
     @classmethod
+    def set_live_data(cls, live_matches: List[Dict], finished_matches: List[Dict]):
+        """Persiste los datos reales de directos y resultados en Firestore."""
+        db = cls.get_db()
+        if not db: return
+
+        live_ref = db.collection("realtime").document("live_scores")
+        live_ref.set({
+            "live": live_matches,
+            "finished": finished_matches,
+            "updated_at": firestore.SERVER_TIMESTAMP
+        })
+
+    @classmethod
     def update_opportunity(cls, opp_id: str, data: Dict[str, Any]):
         db = cls.get_db()
         if not db: return

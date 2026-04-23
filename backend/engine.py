@@ -17,21 +17,36 @@ logger = logging.getLogger(__name__)
 # Listas extendidas para 10 de las mejores casas
 BOOKMAKERS_MOCK = ["Bet365", "Bwin", "Betfair", "Pinnacle", "William Hill", "1xBet", "888Sport", "Sportium", "DraftKings", "Betway"]
 
-# Bases de datos simples para inyectar realismo (jugadores top)
+# Bases de datos de jugadores reales para evitar genéricos
 SOCCER_PLAYERS = {
-    "Real Madrid": ["Vinicius Jr", "Bellingham", "Mbappé", "Valverde"],
-    "Barcelona": ["Lewandowski", "Yamal", "Raphinha", "Pedri"],
-    "Man City": ["Haaland", "De Bruyne", "Foden", "Bernardo Silva"],
-    "Arsenal": ["Saka", "Odegaard", "Martinelli", "Havertz"],
-    "Bayern Munich": ["Kane", "Musiala", "Sané", "Müller"],
-    "PSG": ["Dembélé", "Barcola", "Asensio", "Vitinha"],
-    "Local": ["El 9 titular", "El especialista a balón parado", "El extremo veloz"],
-    "Visitante": ["El máximo goleador", "El delantero centro", "El mediapunta"]
+    "Real Madrid": ["Vinicius Jr", "Bellingham", "Mbappé", "Valverde", "Rodrygo"],
+    "Barcelona": ["Lewandowski", "Yamal", "Raphinha", "Pedri", "Gavi"],
+    "Man City": ["Haaland", "De Bruyne", "Foden", "Bernardo Silva", "Doku"],
+    "Arsenal": ["Saka", "Odegaard", "Martinelli", "Havertz", "Rice"],
+    "Bayern Munich": ["Kane", "Musiala", "Sané", "Müller", "Coman"],
+    "PSG": ["Dembélé", "Barcola", "Asensio", "Vitinha", "Kolo Muani"],
+    "Liverpool": ["Salah", "Diaz", "Nuñez", "Jota", "Gakpo"],
+    "Chelsea": ["Palmer", "Sterling", "Jackson", "Nkunku", "Mudryk"],
+    "Man Utd": ["Rashford", "Garnacho", "Hojlund", "Bruno Fernandes", "Antony"],
+    "Juventus": ["Vlahovic", "Chiesa", "Milik", "Rabiot", "Locatelli"],
+    "Inter": ["Lautaro", "Thuram", "Barella", "Calhanoglu", "Mkhitaryan"],
+    "AC Milan": ["Leao", "Giroud", "Pulisic", "Loftus-Cheek", "Theo"],
+    "Atletico Madrid": ["Griezmann", "Morata", "Correa", "Llorente", "De Paul"],
+    "Local": ["Bruno", "Lucas", "Carlos", "David", "Kevin", "Sergio", "Alex", "Diego", "Joao", "Mateo"],
+    "Visitante": ["Thomas", "Victor", "Gabriel", "Martin", "Luis", "Arthur", "Christian", "Ivan", "Nico", "Marcus"]
 }
 
 BASKETBALL_PLAYERS = {
-    "Local": ["El base titular", "El alero estrella", "El pívot dominante"],
-    "Visitante": ["El escolta anotador", "El sexto hombre", "El tirador estrella"]
+    "Lakers": ["LeBron James", "Anthony Davis", "D'Angelo Russell", "Austin Reaves"],
+    "Warriors": ["Stephen Curry", "Klay Thompson", "Draymond Green", "Andrew Wiggins"],
+    "Celtics": ["Jayson Tatum", "Jaylen Brown", "Kristaps Porzingis", "Jrue Holiday"],
+    "Nuggets": ["Nikola Jokic", "Jamal Murray", "Michael Porter Jr", "Aaron Gordon"],
+    "Bucks": ["Giannis Antetokounmpo", "Damian Lillard", "Khris Middleton", "Brook Lopez"],
+    "Suns": ["Kevin Durant", "Devin Booker", "Bradley Beal", "Jusuf Nurkic"],
+    "Real Madrid": ["Campazzo", "Tavares", "Musa", "Hezonja", "Llull"],
+    "Barcelona": ["Laprovittola", "Satoransky", "Vesely", "Abrines", "Hernangomez"],
+    "Local": ["James", "Davis", "Curry", "Thompson", "Tatum", "Brown", "Jokic", "Murray", "Antetokounmpo", "Lillard", "Durant", "Booker"],
+    "Visitante": ["Doncic", "Irving", "Embiid", "Maxey", "SGA", "Holmgren", "Edwards", "Towns", "Fox", "Sabonis", "Brunson", "Randle"]
 }
 
 def get_random_soccer_market(home: str, away: str) -> tuple:
