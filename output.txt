@@ -1,0 +1,520 @@
+SMARTBET ANALYTICS
+Documento de Especificación de Requisitos (DER)
+Plataforma de Análisis Predictivo Multi-Mercado de Alto Rendimiento
+Campo
+Detalle
+Versión
+3.0 — Cobertura Multi-Mercado Completa
+Fecha
+Abril 2026
+Estado
+En desarrollo
+Confidencialidad
+Documento interno
+Cambio principal v3
+Análisis de TODOS los mercados de apuestas por evento, no solo resultado final
+1. Resumen Ejecutivo
+SmartBet Analytics es una plataforma multiplataforma (Web + iOS/Android) que actúa como agregador inteligente y sistema de análisis predictivo de apuestas deportivas. El sistema analiza la totalidad de mercados disponibles dentro de cada evento deportivo — no solo el resultado final del partido, sino todos los mercados secundarios: corners, tarjetas, goleadores, goles por parte, handicaps, ambos marcan, y cualquier otro mercado ofrecido por las casas de apuestas.
+El algoritmo propietario calcula un Índice de Confianza Compuesta (CC) independiente para cada mercado dentro de cada evento. Solo se presentan al usuario aquellos mercados específicos cuyo CC sea ≥ 70%. Esto significa que de un mismo partido pueden surgir múltiples sugerencias (ej: Over 9.5 corners CC 82%, Jugador X marca CC 74%, Más de 2.5 goles primera parte CC 71%) o ninguna, si ningún mercado supera el umbral.
+El objetivo es maximizar las oportunidades de ganancia explotando ineficiencias en todos los mercados del evento, no limitándose al 1X2 donde las casas de apuestas concentran mayor precisión en sus cuotas.
+1.1 Principio Fundamental: Análisis Multi-Mercado
+Cada evento deportivo contiene decenas de mercados de apuestas. Las casas de apuestas dedican la mayor parte de sus recursos a calibrar las cuotas del resultado principal (1X2), dejando los mercados secundarios (corners, tarjetas, goleadores, parciales) con mayor margen de error. SmartBet Analytics explota sistemáticamente estas ineficiencias analizando TODOS los mercados disponibles y filtrando aquellos donde el modelo detecta valor con CC ≥ 70%.
+1.2 Disclaimer Obligatorio
+La plataforma mostrará de forma permanente y visible: «SmartBet Analytics proporciona análisis estadístico basado en modelos predictivos. Los resultados pasados no garantizan rendimientos futuros. Apostar implica riesgo de pérdida. Apueste solo cantidades que pueda permitirse perder.»
+2. Requisitos Funcionales (RF)
+RF1: Rastreo y Agregación de Datos
+El sistema debe obtener datos de todas las fuentes necesarias para alimentar el análisis multi-mercado completo:
+A) Fuentes de Cuotas (Odds) — Todos los Mercados
+Estrategia de obtención por prioridad. CRÍTICO: las fuentes deben proporcionar cuotas de TODOS los mercados disponibles, no solo resultado final.
+Prioridad 1 — APIs Oficiales: The Odds API (soporta +40 mercados por evento), Betfair Exchange API (todos los mercados del exchange), Sportradar Odds Feed (cobertura completa de mercados).
+Prioridad 2 — APIs de Afiliados: Bet365, William Hill, Bwin, 888Sport. Feeds que incluyan mercados secundarios (props, especiales, estadísticas).
+Prioridad 3 — Scraping Controlado: Solo para casas sin API. Debe extraer la totalidad de mercados disponibles, no solo pestaña principal.
+B) Fuentes de Datos Estadísticos por Tipo de Mercado
+Cada categoría de mercado requiere fuentes de datos específicas para alimentar el modelo:
+Categoría de Mercado
+Datos Necesarios
+Fuentes
+Resultado (1X2, Doble Oportunidad)
+Forma reciente, head-to-head, xG, rendimiento casa/fuera
+Opta, FBref, Sofascore, Transfermarkt
+Goles (Over/Under, Ambos Marcan, Exacto)
+Media de goles marcados/recibidos, xG por equipo, tendencias de partidos
+StatsBomb, FBref, Football-Data.co.uk
+Goles por Parte (1ª/2ª mitad)
+Distribución temporal de goles, patrones por franja horaria del partido
+Opta (datos minuto a minuto), FBref
+Corners (Total, Equipo, Over/Under)
+Media de corners por equipo, estilo de juego (posesión vs directo), corners a favor/contra
+Sofascore, FootyStats, Opta
+Tarjetas (Total, Jugador, Over/Under)
+Media de tarjetas por equipo, historial disciplinario de jugadores, estilo del árbitro asignado
+Transfermarkt (sanciones), Sofascore, bases de datos arbitrales
+Goleadores (Marca, Marca Primero, Hat-trick)
+Goles por 90 min, xG individual, titularidad esperada, historial vs rival
+FBref (xG por jugador), Transfermarkt, Opta
+Handicap (Asiático, Europeo)
+Diferencial histórico entre equipos, margen de victoria esperado
+Football-Data.co.uk, Opta, modelos propios
+Estadísticas de Jugador (Tiros, Pases, Faltas)
+Estadísticas individuales por 90 min, tendencias recientes, posición táctica
+FBref, Opta, StatsBomb, SofaScore
+Especiales (Primer Gol antes min X, Resultado Exacto)
+Análisis temporal de goles, patrones de inicio de partido
+Opta (play-by-play), datos propios históricos
+C) Datos Específicos por Deporte
+Deporte
+Mercados Cubiertos (además de resultado)
+Fuentes Específicas
+Fútbol
+Goles (O/U, ambos, exacto, por parte), corners, tarjetas, goleadores, handicap, tiros a puerta, fueras de juego, faltas, saques de banda, penaltis, resultado al descanso, dobble oportunidad, marcador exacto
+Opta, FBref, StatsBomb, Sofascore, FootyStats, Transfermarkt
+Baloncesto
+Puntos totales (O/U), handicap, cuartos individuales, primer anotador, dobles-dobles, triples anotados, rebotes, asistencias, puntos por jugador
+NBA Stats API, Basketball-Reference, registros ACB/Euroliga
+Fórmula 1
+Ganador, podio, pole, vuelta rápida, head-to-head entre pilotos, abandono, safety car, margen de victoria, puntos de constructores
+Ergast API, telemetría pública, tiempos de clasificación, FastF1
+Fútbol Americano (NFL)
+Spread, totales (O/U), props de jugador (yardas, TDs, recepciones), primer anotador, resultado por cuarto, field goals, turnovers
+NFL Next Gen Stats, Pro Football Reference, ESPN Stats
+D) Ligas y Competiciones
+Deporte
+Ligas / Competiciones
+Fútbol
+LaLiga, Premier League, Bundesliga, Serie A, Ligue 1, Champions League, Europa League, Conference League
+Baloncesto
+NBA, ACB, Euroliga
+Fórmula 1
+Campeonato Mundial FIA
+Fútbol Americano
+NFL (temporada regular + playoffs)
+RF2: Motor de Predicción Multi-Mercado — Índice de Confianza Compuesta (CC)
+El CC se calcula DE FORMA INDEPENDIENTE para cada mercado dentro de cada evento. Un partido Real Madrid vs Barcelona puede generar 50+ mercados analizados, de los cuales quizás 3-4 superen el umbral CC ≥ 70%. El sistema evalúa todos y solo presenta los que cualifican.
+Proceso de Análisis por Evento
+1. El sistema detecta un evento próximo y obtiene TODOS los mercados disponibles de todas las casas de apuestas.
+2. Para cada mercado individual, se alimenta el modelo con los datos estadísticos específicos de ese tipo de mercado (ver tabla RF1-B).
+3. Se calcula el CC independiente para cada mercado usando los factores ponderados correspondientes.
+4. Solo los mercados con CC ≥ 70% pasan al Top 10. Los demás se descartan silenciosamente.
+5. Si de un mismo evento cualifican múltiples mercados, cada uno aparece como entrada independiente en el Top 10 (ej: «Real Madrid-Barcelona: Over 10.5 Corners CC 84%» y «Real Madrid-Barcelona: Ambos Marcan Sí CC 77%» son dos entradas separadas).
+Componentes del CC (ponderación base — se ajusta por tipo de mercado)
+Factor
+Peso Base
+Descripción
+Probabilidad Estadística Específica
+30%
+Modelo entrenado con datos históricos del mercado concreto. Ej: para corners, usa medias de corners, estilo de juego, presión alta/baja. Para goleadores, usa xG individual, titularidad, historial vs rival
+Valor de Cuota (Edge)
+25%
+Diferencia entre la probabilidad del modelo y la probabilidad implícita de la cuota para ESE mercado específico
+Consenso de Mercado
+15%
+Movimientos de cuotas en el mercado específico. Si varias casas mueven las líneas de corners o tarjetas en la misma dirección, se refuerza la señal
+Factores Contextuales
+15%
+Lesiones, sanciones, rotaciones, motivación. Impacto específico según mercado (ej: ausencia de un defensa central impacta más en mercado de goles que en corners)
+Condiciones Externas
+10%
+Clima, terreno, viajes. Impacto variable según mercado (lluvia impacta más en corners que en tarjetas)
+Fiabilidad de Datos
+5%
+Calidad y disponibilidad de datos estadísticos para el mercado concreto. Si faltan datos de corners históricos, el CC de corners se penaliza
+Ajuste de Ponderación por Tipo de Mercado
+Los pesos se reajustan según la naturaleza del mercado. Ejemplos de ajustes:
+Tipo de Mercado
+Ajuste Principal
+Motivo
+Corners
+Consenso Mercado sube a 20%, Condiciones Externas sube a 15%
+Las cuotas de corners son menos eficientes (más edge). El clima y terreno afectan directamente al juego aéreo y centros
+Tarjetas
+Factores Contextuales sube a 25% (incluye árbitro)
+El árbitro asignado es el factor más determinante en tarjetas. Su historial disciplinario es crítico
+Goleadores
+Prob. Estadística sube a 40%
+La predicción de goleadores depende fuertemente de datos individuales (xG, titularidad, posición)
+Goles por Parte
+Prob. Estadística sube a 35%, se añade análisis temporal
+Requiere modelado específico de distribución temporal de goles (minuto a minuto)
+Handicap
+Valor de Cuota sube a 30%
+Mercado muy eficiente; solo hay valor cuando el edge es significativamente alto
+Props de Jugador (NBA/NFL)
+Prob. Estadística sube a 45%
+Mercados altamente dependientes de rendimiento individual reciente y matchup específico
+Umbrales de Confianza
+Rango CC
+Clasificación
+Acción del Sistema
+90% – 100%
+Confianza Excepcional
+Prioridad máxima en Top 10. Stake sugerido: 3-5 unidades. Se destaca visualmente en la app
+80% – 89%
+Confianza Alta
+Prioridad alta. Stake sugerido: 2-3 unidades
+70% – 79%
+Confianza Sólida
+Se incluye si hay espacio en Top 10. Stake sugerido: 1-2 unidades
+< 70%
+No cualificado
+NO se muestra al usuario. Aplica a cualquier tipo de mercado sin excepción
+RF3: El Top 10 Dinámico Multi-Mercado
+El Top 10 ya no se limita a 10 partidos con un pronóstico cada uno. Ahora muestra las 10 mejores OPORTUNIDADES de mercado, que pueden provenir de distintos eventos o de múltiples mercados dentro del mismo evento.
+Ejemplo de Top 10 Multi-Mercado (un día cualquiera)
+#
+Evento
+Mercado
+Pronóstico
+CC
+Cuota
+Casa
+1
+Real Madrid vs Barcelona
+Corners Total
+Over 10.5
+88%
+1.85
+Betfair
+2
+Liverpool vs Arsenal
+Ambos Marcan
+Sí
+85%
+1.72
+Bet365
+3
+Real Madrid vs Barcelona
+Tarjetas Total
+Over 4.5
+83%
+1.90
+William Hill
+4
+Lakers vs Celtics
+Puntos Totales
+Over 224.5
+81%
+1.88
+888Sport
+5
+Bayern vs Dortmund
+Goleador
+Kane Marca
+79%
+1.65
+Bwin
+6
+Liverpool vs Arsenal
+Resultado 1ª Parte
+Empate HT
+78%
+2.10
+Betfair
+7
+GP Mónaco F1
+Head-to-Head
+Verstappen > Norris
+77%
+1.75
+Bet365
+8
+Chiefs vs Eagles (NFL)
+Props Jugador
+Mahomes +2.5 TDs
+75%
+1.95
+888Sport
+9
+Real Madrid vs Barcelona
+Handicap Asiático
+Barcelona +0.5
+73%
+1.92
+Bwin
+10
+Bayern vs Dortmund
+Goles 1ª Parte
+Over 1.5
+71%
+2.05
+William Hill
+Observar: Real Madrid vs Barcelona aparece 3 veces (corners, tarjetas, handicap) porque 3 mercados distintos del mismo partido superan el CC ≥ 70%. Esto es la esencia del análisis multi-mercado.
+Reglas del Top 10
+Calidad sobre cantidad: Si solo hay 4 mercados cualificados en todo el día, se muestran 4. Mensaje: «Hoy hay 4 oportunidades de alto valor. Calidad > cantidad.»
+Diversificación: El sistema prioriza variedad de eventos. Si un partido tiene 6 mercados cualificados, se muestran los 3 mejores para dejar espacio a otros eventos (salvo que los 6 tengan CC > 85%).
+Optimización de cuota por mercado: Para cada mercado específico, se comparan las cuotas entre todas las casas y se recomienda la mejor.
+Sin oportunidades: «Sin oportunidades detectadas en ningún mercado. El mejor movimiento hoy es no apostar.»
+Función de Actualización (Refresh)
+Comportamiento: Descarta las sugerencias actuales y busca en el siguiente nivel de prioridad, incluyendo mercados de menor CC (pero siempre ≥ 70%).
+Cooldown: 15 minutos entre refreshes. Temporizador visible.
+Límite: 5 refreshes/día. Tras agotarlos: «Has revisado todas las oportunidades disponibles.»
+RF4: Panel de Gestión Financiera Multi-Mercado (Dashboard)
+El dashboard se adapta al análisis multi-mercado, permitiendo al usuario rastrear su rendimiento no solo por evento sino por tipo de mercado.
+A) Registro de Actividad
+Campos por apuesta: Evento, Tipo de Mercado (1X2, corners, tarjetas, goleador, handicap, etc.), Pronóstico específico, Casa de apuestas, Cuota, Cantidad apostada, Resultado (Ganada/Perdida/Anulada/Cashout), Ganancia neta, CC en el momento de la apuesta, Fecha y hora.
+Registro automático: Si el usuario sigue una sugerencia del Top 10, todos los campos (incluido tipo de mercado) se pre-rellenan.
+B) Métricas en Tiempo Real
+Métrica
+Descripción
+Visualización
+ROI Global
+Retorno sobre la inversión total
+Porcentaje + línea temporal
+ROI por Tipo de Mercado
+ROI desglosado: corners, tarjetas, goleadores, goles, handicap, 1X2, etc.
+Gráfica de barras por categoría de mercado
+Yield Global
+Rendimiento por unidad apostada
+Porcentaje + tendencia
+Yield por Mercado
+Rendimiento por unidad desglosado por tipo de mercado
+Tabla comparativa con tendencias
+Bankroll Histórico
+Evolución del capital disponible
+Gráfica de área con hitos
+Drawdown Máximo
+Mayor racha de pérdidas consecutivas
+Indicador con alerta visual
+Tasa de Acierto Global
+% de apuestas ganadas sobre el total
+Porcentaje + comparativa
+Tasa de Acierto por Mercado
+% de acierto separado por tipo de mercado
+Gráfica radar/spider con cada mercado como eje
+Acierto por Rango CC
+Tasa de éxito por rango (70-79, 80-89, 90+)
+Barras comparativas
+Mercados Más Rentables
+Ranking de tipos de mercado por rentabilidad histórica del usuario
+Top 5 con ROI y volumen
+C) Gráficas y Filtros
+Temporalidad: Diaria, semanal, mensual y acumulada.
+Filtro por tipo de mercado: El usuario puede ver solo corners, solo tarjetas, solo goleadores, etc. o cualquier combinación.
+Filtro por deporte y liga: Cruzado con tipo de mercado (ej: «mi ROI en corners de LaLiga»).
+Filtro por rango CC: Comparar rendimiento de apuestas con CC 70-79 vs CC 80-89 vs CC 90+.
+Exportación: CSV y PDF con todos los filtros aplicados.
+D) Sistema de Alertas Inteligentes
+Alerta de pérdidas: Si el usuario pierde >20% del bankroll en una semana, se sugiere pausa con recursos de juego responsable.
+Alerta por mercado: Si un tipo de mercado específico acumula pérdidas (ej: 8 de 10 apuestas de goleadores perdidas), se alerta: «Tu rendimiento en mercado de Goleadores ha caído. Considera reducir exposición.»
+Alerta de racha: Tras 5 pérdidas consecutivas, se recomienda parar.
+Alerta positiva: Al alcanzar objetivos de beneficio, se felicita y sugiere consolidar.
+RF5: Sistema de Stake Sugerido
+El stake se calcula según el CC del mercado específico y el estado del bankroll. Se aplica igual a todos los tipos de mercado:
+Rango CC
+Stake Sugerido
+Lógica
+90% – 100%
+3-5 unidades
+Confianza excepcional en el mercado específico. Máxima exposición permitida.
+80% – 89%
+2-3 unidades
+Alta confianza. Factores principales del mercado alineados.
+70% – 79%
+1-2 unidades
+Confianza sólida. Se minimiza exposición.
+Reglas de Protección del Bankroll
+Stake máximo por apuesta: Ninguna apuesta individual puede superar el 5% del bankroll actual, independientemente del tipo de mercado.
+Exposición diaria máxima: El total apostado en un día no puede superar el 15% del bankroll.
+Exposición por evento: El total apostado en múltiples mercados del MISMO evento no puede superar el 8% del bankroll. Esto evita sobreexposición a un solo partido.
+Ajuste dinámico: Si el bankroll baja un 20% desde su máximo, los stakes se reducen un nivel automáticamente.
+3. Modelo de Datos
+Estructura adaptada al análisis multi-mercado. La entidad Mercado es ahora central en el modelo:
+Entidad
+Campos Clave
+Relaciones
+Usuario
+id, email, nombre, rol, bankroll_actual, bankroll_inicial, preferencias_deporte, preferencias_mercado[], fecha_registro, configuración_alertas
+1:N con Apuesta
+Evento
+id, deporte, liga, participantes (equipos/pilotos/jugadores), fecha_hora, estado, resultado_final, datos_completos (JSON con stats finales: goles, corners, tarjetas, etc.)
+1:N con Mercado
+Mercado
+id, evento_id, tipo_mercado (enum: ver catálogo), selección (ej: Over 10.5), línea (ej: 10.5), resultado (ganado/perdido/anulado/push), estado (abierto/cerrado/suspendido)
+N:1 con Evento, 1:N con Cuota, 1:N con Predicción
+Cuota
+id, mercado_id, casa_apuestas, valor_cuota, probabilidad_implicita, timestamp_captura, es_mejor_cuota (boolean)
+N:1 con Mercado
+Predicción
+id, mercado_id, cc_score, desglose_factores (JSON con pesos ajustados por tipo de mercado), pronostico, stake_sugerido, cuota_optima, casa_recomendada, timestamp
+N:1 con Mercado, 1:N con Apuesta
+Apuesta
+id, usuario_id, prediccion_id, mercado_id, tipo_mercado, cantidad, cuota_real, resultado, ganancia_neta, cc_momento, fecha
+N:1 con Usuario, N:1 con Predicción, N:1 con Mercado
+Histórico_Modelo
+id, fecha, tipo_mercado, tasa_acierto, tasa_por_rango_cc, roi_simulado, num_predicciones
+Tabla independiente, una fila por tipo de mercado por día
+Catálogo de Tipos de Mercado (enum tipo_mercado)
+Deporte
+Tipos de Mercado Soportados
+Fútbol
+1X2, doble_oportunidad, over_under_goles, goles_exactos, ambos_marcan, handicap_asiatico, handicap_europeo, resultado_descanso, resultado_descanso_final, goles_primera_parte, goles_segunda_parte, corners_total, corners_equipo, corners_over_under, tarjetas_total, tarjetas_equipo, tarjetas_over_under, tarjeta_jugador, goleador_marca, goleador_marca_primero, goleador_marca_ultimo, tiros_a_puerta_over_under, fueras_juego_over_under, faltas_over_under, penalti_si_no, resultado_exacto, minuto_primer_gol, saques_banda_over_under
+Baloncesto
+ganador, handicap, over_under_puntos, over_under_cuarto, primer_anotador, puntos_jugador, rebotes_jugador, asistencias_jugador, triples_jugador, doble_doble, triple_doble, margen_victoria, over_under_primera_mitad
+Fórmula 1
+ganador_carrera, podio, pole_position, vuelta_rapida, head_to_head_pilotos, abandono_piloto, safety_car, margen_victoria, constructor_ganador, top6_clasificacion
+NFL
+ganador, spread, over_under_puntos, over_under_cuarto, primer_anotador, yardas_jugador, touchdowns_jugador, recepciones_jugador, field_goals, turnovers_over_under, margen_victoria
+Caché en Tiempo Real (Redis)
+Cuotas por mercado: TTL 60 segundos. Clave: evento_id:mercado_id:casa. Se actualizan con cada polling.
+Top 10 calculado: TTL 5 minutos. Se recalcula cuando cambian cuotas significativamente en cualquier mercado.
+Mejor cuota por mercado: TTL 30 segundos. Para cada mercado, la mejor cuota disponible entre todas las casas.
+Sesiones de usuario: TTL configurable.
+4. Arquitectura Técnica
+4.1 Stack Tecnológico
+Capa
+Tecnología
+Justificación
+Backend / API
+Python (FastAPI)
+Ecosistema ML/Data Science. Rendimiento asíncrono con tipado nativo.
+Motor de Predicción
+Python (XGBoost / LightGBM)
+Un modelo por categoría de mercado. Gradient boosting con validación cruzada.
+Frontend Web
+React.js + TypeScript
+Dashboards complejos con filtros multi-mercado.
+App Móvil
+React Native
+Código compartido iOS/Android.
+Base de Datos
+PostgreSQL
+Históricos, relaciones evento-mercado-cuota-predicción.
+Caché
+Redis
+Cuotas en tiempo real por mercado, Top 10, sesiones.
+Cola de Tareas
+Celery + Redis
+Scraping multi-mercado, recálculo de CC, limpieza.
+Infraestructura
+Docker + AWS (ECS/RDS/ElastiCache)
+Escalabilidad horizontal para procesamiento masivo de mercados.
+4.2 Flujo de Datos Multi-Mercado
+1. Los workers de Celery recopilan datos de cuotas de TODOS los mercados disponibles por evento, cada 1-5 minutos según proximidad.
+2. Se normalizan los mercados (diferentes casas nombran mercados de forma distinta: «Total Corners» vs «Corners Over/Under» — se mapean a tipo_mercado estándar).
+3. Para cada mercado de cada evento activo, se alimentan los datos estadísticos específicos y se calcula el CC con los pesos ajustados por tipo de mercado.
+4. Se identifican los mercados con CC ≥ 70%, se selecciona la mejor cuota por mercado, y se genera el Top 10.
+5. El Top 10 se envía al frontend vía WebSocket. Cada entrada especifica evento + tipo de mercado + pronóstico + CC + cuota + casa.
+4.3 Interfaz de Usuario (UI/UX)
+Vista de Apuesta Multi-Mercado (Tarjeta del Top 10)
+Cada tarjeta muestra: Evento (equipos + liga + hora), Tipo de Mercado (con icono: balon para goles, bandera para corners, tarjeta para tarjetas, bota para goleador, etc.), Pronóstico específico (ej: «Over 10.5 Corners», «Kane Marca Gol», «Más de 4.5 Tarjetas»), Cuota óptima con casa recomendada, Índice CC con barra de color, Stake sugerido, y botón «Registrar Apuesta».
+Vista Expandida de Evento
+Al tocar un evento, se despliega una vista con TODOS los mercados analizados para ese evento, mostrando cuáles superan el umbral (destacados en verde) y cuáles no (en gris). Esto permite al usuario ver el análisis completo: «De 47 mercados analizados para este partido, 3 superan el umbral CC 70%.»
+Modos de Visualización
+Modo Oscuro/Claro: Toggle accesible. Optimizado para lectura de datos.
+Vista compacta/expandida: Compacta muestra mercado + CC + cuota. Expandida muestra desglose de factores.
+Filtro por tipo de mercado: El usuario puede filtrar el Top 10 para ver solo corners, solo goleadores, etc.
+5. Roles y Permisos
+Rol
+Acceso
+Funcionalidades
+Estándar (Free)
+Top 10 limitado, Dashboard básico
+Ve 5 de las 10 opciones (las de menor CC), solo mercados principales (1X2, O/U goles, handicap). 2 refreshes/día. Métricas básicas.
+Premium
+Top 10 completo, Dashboard completo
+10 opciones con TODOS los tipos de mercado (corners, tarjetas, goleadores, props, etc.). 5 refreshes/día. Todas las métricas incluyendo desglose por mercado. Alertas inteligentes. Exportación. Notificaciones push.
+Administrador
+Panel completo
+Gestión de usuarios, ajuste de modelos por tipo de mercado, rendimiento del algoritmo desglosado por mercado, gestión de fuentes, logs.
+6. Validación y Backtesting del Modelo Multi-Mercado
+Cada tipo de mercado requiere validación independiente. Un modelo que predice bien goles no necesariamente predice bien corners.
+Fase 1: Backtesting Histórico por Mercado
+Datos: Mínimo 2 temporadas completas por deporte Y por tipo de mercado.
+Método: Simulación del CC para cada mercado con datos históricos. Se evalúa: tasa de acierto, ROI y drawdown POR TIPO DE MERCADO.
+Criterio: Cada tipo de mercado debe demostrar ROI positivo de forma independiente. Si un tipo de mercado (ej: resultado exacto) no lo consigue, se excluye del sistema hasta mejora del modelo.
+Fase 2: Paper Trading Multi-Mercado
+Duración: Mínimo 3 meses con todos los tipos de mercado activos.
+Método: Predicciones diarias por mercado sin dinero real. Evaluación cruzada entre mercados.
+Criterio: Resultados consistentes con backtesting. Desviación máxima 5% por tipo de mercado. Mercados que no cumplan se desactivan.
+Fase 3: Lanzamiento Controlado (Beta)
+Máx. 500 usuarios, 2 meses. Monitorización de rendimiento real desglosado por cada tipo de mercado. Se activan progresivamente los mercados según validación.
+Mejora Continua
+Cada modelo de mercado se reentrena mensualmente. Los tipos de mercado con rendimiento inferior al esperado se desactivan automáticamente hasta que se mejore el modelo. Se añaden nuevos tipos de mercado progresivamente tras superar las 3 fases de validación.
+7. Marco Legal y Cumplimiento Normativo
+Sección crítica para la operabilidad en Europa. Debe ser revisada por equipo legal especializado.
+7.1 Protección de Datos (GDPR)
+Consentimiento explícito: Registro, datos financieros, notificaciones.
+Derecho al olvido: Eliminación completa de cuenta y datos.
+Minimización: Solo datos necesarios para el servicio.
+DPO: Delegado de Protección de Datos si se superan umbrales GDPR.
+7.2 Regulación de Juego
+España (DGOJ): Consultar si el análisis predictivo multi-mercado requiere autorización. La plataforma NO gestiona apuestas pero el asesoramiento puede estar regulado.
+Verificación +18: Control robusto en registro. Verificación documental obligatoria.
+Juego responsable: Límites, autoexclusión, enlaces a FEJAR y Jugarbien.es.
+Operación internacional: Normativa por jurisdicción. Geobloqueo donde no haya autorización.
+7.3 Seguridad Técnica
+Cifrado: TLS 1.3 en tránsito. AES-256 en reposo para datos financieros.
+Autenticación: 2FA obligatorio para dashboard financiero. OAuth 2.0 + JWT.
+Auditoría: Logs de operaciones críticas. Retención 5 años.
+Pentesting: Auditoría externa antes de lanzamiento y semestralmente.
+8. Registro de Cambios v1.0 → v2.0 → v3.0
+Cambios v2.0 (respecto a v1.0)
+Área
+Cambio
+Motivo
+Confianza
+Filtro 75-100% → CC con umbral 70% desglosado en factores
+Marco metodológico transparente y auditable
+Datos
+Scraping directo → 3 niveles de prioridad (APIs > Afiliados > Scraping)
+Viabilidad legal y técnica
+Top 10
+Fijo 10 → Variable 0-10, cooldown 15 min, límite 5 refreshes
+Calidad sobre cantidad, prevención compulsiva
+Dashboard
+ROI + Yield → 7 métricas + alertas inteligentes
+Gestión seria de bankroll
+Modelo Datos
+Inexistente → 6 entidades + Redis
+Evitar improvisación en desarrollo
+Roles
+Inexistente → Free/Premium/Admin
+Modelo de negocio y accesos
+Validación
+Inexistente → 3 fases (Backtesting + Paper + Beta)
+Requisito antes de lanzamiento
+Legal
+2 líneas → Sección completa GDPR + DGOJ
+Operabilidad legal en Europa
+Stake
+Stake 1-3 genérico → Reglas de protección de bankroll
+Protección del capital del usuario
+Cambios v3.0 (respecto a v2.0) — ANÁLISIS MULTI-MERCADO
+Área
+Cambio v2 → v3
+Motivo
+Alcance de Análisis
+De analizar SOLO resultado del partido (1X2) → a analizar TODOS los mercados disponibles: corners, tarjetas, goleadores, goles por parte, handicaps, props de jugador, especiales, etc.
+Las casas de apuestas son más precisas en 1X2; los mercados secundarios tienen mayor margen de error y más oportunidades de valor
+Motor CC
+Un CC por evento → Un CC independiente por cada mercado de cada evento, con pesos ajustados al tipo de mercado
+Cada tipo de mercado tiene dinámicas distintas (corners no se predicen igual que tarjetas)
+Fuentes de Datos
+Fuentes generales → Fuentes específicas por categoría de mercado (bases de datos arbitrales para tarjetas, xG individual para goleadores, etc.)
+La calidad predictiva depende de datos especializados por tipo de mercado
+Top 10
+10 mejores EVENTOS → 10 mejores MERCADOS (un evento puede aparecer múltiples veces con mercados distintos)
+Maximiza oportunidades al no limitarse a un pronóstico por evento
+Modelo Datos
+Entidad Cuota vinculada a Evento → Nueva entidad Mercado intermedia (Evento → Mercado → Cuota/Predicción)
+Estructura relacional correcta para análisis multi-mercado
+Catálogo Mercados
+Inexistente → Enum completo con 30+ tipos de mercado por deporte (1X2, corners, tarjetas, goleadores, handicap, goles por parte, props, especiales, etc.)
+Definición formal de todos los mercados soportados para desarrollo
+Dashboard
+Métricas globales → Métricas desglosadas por tipo de mercado (ROI corners, acierto tarjetas, etc.)
+El usuario necesita saber en qué tipos de mercado tiene mejor rendimiento
+Alertas
+Alertas generales → Alertas específicas por tipo de mercado cuando el rendimiento cae
+Protección granular del bankroll
+Validación
+Backtesting global → Backtesting independiente por tipo de mercado con posibilidad de desactivar mercados no rentables
+Un modelo bueno para goles puede ser malo para corners; validación por separado
+Bankroll
+Límite diario 15% → Añadido límite por evento (8%) para evitar sobreexposición multi-mercado al mismo partido
+Apostar corners + tarjetas + goles del mismo partido concentra riesgo en un solo resultado
+UI/UX
+Tarjeta simple → Tarjeta con icono de tipo de mercado + vista expandida que muestra todos los mercados analizados del evento
+El usuario necesita contexto visual inmediato del tipo de apuesta
+Free vs Premium
+Mismo contenido limitado → Free solo ve mercados principales (1X2, O/U, handicap). Premium accede a TODOS los mercados
+Incentivo claro de upgrade: los mercados más rentables (corners, tarjetas, goleadores) son exclusivos Premium
