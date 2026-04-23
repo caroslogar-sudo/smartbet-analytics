@@ -27,6 +27,8 @@ class Opportunity(BaseModel):
     commence_time: Optional[str] = None
     # Comparativa real de cuotas por casa de apuestas
     bookmaker_odds: List[BookmakerOdds] = []
+    # Razón estadística para el frontend
+    statisticalReason: str = "Análisis basado en consenso de modelos predictivos."
 
 
 class Top10Response(BaseModel):
