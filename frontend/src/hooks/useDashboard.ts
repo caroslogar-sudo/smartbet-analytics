@@ -4,7 +4,7 @@ import { firebaseService } from '../services/firebaseService';
 
 /* ─── Types ─── */
 
-export type BetResult = 'pending' | 'won' | 'lost' | 'void' | 'cashout';
+export type BetResult = 'pending' | 'won' | 'lost' | 'void' | 'cashout' | 'draw';
 
 export interface RegisteredBet {
   id: string;
@@ -411,7 +411,7 @@ export const useDashboard = ({ uid }: UseDashboardOptions = {}) => {
           ? +(bet.stake * (bet.odds - 1)).toFixed(2)
           : bet.result === 'lost'
           ? -bet.stake
-          : 0;
+          : 0; // 'void', 'cashout', 'draw' (X) son 0 neto (solo retorno de stake o ajuste manual)
 
       const betPayload = { ...bet, netProfit };
 
@@ -450,7 +450,7 @@ export const useDashboard = ({ uid }: UseDashboardOptions = {}) => {
               ? +(b.stake * (b.odds - 1)).toFixed(2)
               : result === 'lost'
               ? -b.stake
-              : 0;
+              : 0; // 'void', 'cashout', 'draw' son 0 neto
           return { ...b, result, netProfit };
         });
         updateLocalBets(updated);

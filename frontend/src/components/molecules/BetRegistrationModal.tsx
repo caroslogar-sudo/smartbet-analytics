@@ -38,8 +38,9 @@ const RESULT_OPTIONS: { value: BetResult; label: string; color: string }[] = [
   { value: 'pending', label: 'Pendiente', color: 'var(--color-text-secondary)' },
   { value: 'won', label: 'Ganada', color: 'var(--color-success)' },
   { value: 'lost', label: 'Perdida', color: 'var(--color-danger)' },
+  { value: 'draw', label: 'Empate (X)', color: 'var(--color-info)' },
   { value: 'void', label: 'Anulada', color: 'var(--color-warning)' },
-  { value: 'cashout', label: 'Cashout', color: 'var(--color-info)' },
+  { value: 'cashout', label: 'Cashout', color: 'var(--color-primary)' },
 ];
 
 /* ─── Styles ─── */
