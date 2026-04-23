@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { SportColumn } from '../organisms/SportColumn';
-import { ParlayRecommender } from '../organisms/ParlayRecommender';
 import { useLiveTop10 } from '../../hooks/useLiveTop10';
 import type { MarketCategory } from '../../data/mockPredictions';
 import { AlertTriangle } from 'lucide-react';
@@ -231,11 +230,6 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
             />
           </div>
         </div>
-      </div>
-
-      {/* Recomendaciones Combinadas */}
-      <ParlayRecommender opportunities={opportunities} onAddToDashboard={onAddToDashboard} />
-
       {/* Sport Columns - Side by Side */}
       <div style={{
         display: 'flex',
