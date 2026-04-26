@@ -23,8 +23,8 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
     }
 
     const generated = [];
-    // Generar 3 recomendaciones de parlays
-    for (let i = 0; i < 3; i++) {
+    // Generar 6 recomendaciones de parlays
+    for (let i = 0; i < 6; i++) {
       // Mezclar aleatoriamente y coger entre 3 y 6 picks
       const shuffled = [...validOpps].sort(() => 0.5 - Math.random());
       const parlaySize = Math.floor(Math.random() * 4) + 3; // 3 a 6
