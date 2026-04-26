@@ -1,4 +1,42 @@
-﻿serviceAccountKey.json
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+dist/
+build/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+# Firebase
+serviceAccountKey.json
 *firebase*.json
 **/serviceAccountKey.json
 **/*firebase*.json
+
+# Misc
+.DS_Store
+.idea/
+.vscode/
+*.log
+backend/*.json
+!backend/opportunities_real.json
