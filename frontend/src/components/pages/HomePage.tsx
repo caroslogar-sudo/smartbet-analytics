@@ -20,6 +20,7 @@ const getSportIcon = (sport: string) => {
   switch (sport) {
     case 'Fútbol': return <Trophy size={20} />;
     case 'Baloncesto': return <CircleDot size={20} />;
+    case 'Tenis': return <TrendingUp size={20} />;
     default: return <Zap size={20} />;
   }
 };
@@ -28,6 +29,7 @@ const getSportGradient = (sport: string): string => {
   switch (sport) {
     case 'Fútbol': return 'linear-gradient(135deg, #1a6b3c 0%, #0f4025 100%)';
     case 'Baloncesto': return 'linear-gradient(135deg, #b45309 0%, #78350f 100%)';
+    case 'Tenis': return 'linear-gradient(135deg, #4d7c0f 0%, #365314 100%)';
     default: return 'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)';
   }
 };
@@ -36,6 +38,7 @@ const getSportAccent = (sport: string): string => {
   switch (sport) {
     case 'Fútbol': return '#34d399';
     case 'Baloncesto': return '#fbbf24';
+    case 'Tenis': return '#a3e635';
     default: return '#a78bfa';
   }
 };

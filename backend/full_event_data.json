@@ -1,0 +1,203 @@
+{
+  "data": {
+    "id": 3827705,
+    "sport_id": 1,
+    "home_team_id": 9602,
+    "away_team_id": 10984,
+    "league_id": 894,
+    "challenge_id": 2335,
+    "season_id": 68160,
+    "venue_id": 3495,
+    "referee_id": 384,
+    "slug": "2026-04-26-sao-paulo-mirassol",
+    "name": "S\u00e3o Paulo \u2013 Mirassol",
+    "status": "finished",
+    "status_more": "Ended",
+    "time_details": {
+      "injuryTime1": 3,
+      "injuryTime2": 6,
+      "currentPeriodStartTimestamp": 1777165622
+    },
+    "home_team": {
+      "id": 9602,
+      "sport_id": 1,
+      "category_id": 135,
+      "venue_id": 3409,
+      "manager_id": 3714,
+      "slug": "sao-paulo",
+      "name": "S\u00e3o Paulo",
+      "has_logo": true,
+      "logo": "https://xscore.cc/resb/team/sao-paulo.png",
+      "name_translations": {
+        "en": "S\u00e3o Paulo",
+        "ru": "\u0424\u041a \u0421\u0430\u043d-\u041f\u0430\u0443\u043b\u0443",
+        "de": "Sao Paulo FC SP",
+        "es": "S\u00e3o Paulo",
+        "fr": "Sao Paulo FC SP",
+        "zh": "SP\u5723\u4fdd\u7f57",
+        "tr": "Sao Paulo FC SP",
+        "el": "\u03a3\u03ac\u03bf \u03a0\u03ac\u03bf\u03bb\u03bf",
+        "it": "Sao Paulo FC SP",
+        "nl": "Sao Paulo FC SP",
+        "pt": "S\u00e3o Paulo FC SP"
+      },
+      "name_short": "S\u00e3o Paulo",
+      "name_full": "S\u00e3o Paulo",
+      "name_code": "SPA",
+      "has_sub": false,
+      "gender": "M",
+      "is_nationality": false,
+      "country_code": "Brazil",
+      "country": "Brazil",
+      "flag": "brazil",
+      "foundation": null
+    },
+    "away_team": {
+      "id": 10984,
+      "sport_id": 1,
+      "category_id": 135,
+      "venue_id": 11503,
+      "manager_id": 6612,
+      "slug": "mirassol",
+      "name": "Mirassol",
+      "has_logo": true,
+      "logo": "https://xscore.cc/resb/team/mirassol.png",
+      "name_translations": {
+        "en": "Mirassol",
+        "ru": "\u041c\u0438\u0440\u0430\u0441\u043e\u043b",
+        "de": "Mirassol FC SP",
+        "zh": "\u7c73\u62c9\u7d22\u5c14\u8db3\u7403\u4ff1\u4e50\u90e8",
+        "el": "\u039c\u03b9\u03c1\u03b1\u03c3\u03c3\u03cc\u03bb",
+        "nl": "Mirassol FC",
+        "pt": "Mirassol FC",
+        "tr": "Mirassol FC SP"
+      },
+      "name_short": "Mirassol",
+      "name_full": "Mirassol",
+      "name_code": "MIR",
+      "has_sub": false,
+      "gender": "M",
+      "is_nationality": false,
+      "country_code": "Brazil",
+      "country": "Brazil",
+      "flag": "brazil",
+      "foundation": null
+    },
+    "start_at": "2026-04-26 00:00:00",
+    "priority": 1,
+    "home_score": {
+      "current": 1,
+      "display": 1,
+      "period_1": 0,
+      "period_2": 1,
+      "normal_time": 1
+    },
+    "away_score": {
+      "current": 0,
+      "display": 0,
+      "period_1": 0,
+      "period_2": 0,
+      "normal_time": 0
+    },
+    "winner_code": 1,
+    "aggregated_winner_code": null,
+    "result_only": false,
+    "coverage": null,
+    "ground_type": null,
+    "round_number": 13,
+    "series_count": null,
+    "medias_count": null,
+    "status_lineup": 2,
+    "first_supply": null,
+    "cards_code": null,
+    "event_data_change": null,
+    "lasted_period": "period_2",
+    "default_period_count": 2,
+    "attendance": null,
+    "cup_match_order": null,
+    "cup_match_in_round": null,
+    "periods": null,
+    "round_info": {
+      "round": 13
+    },
+    "periods_time": {
+      "injury_time_1": 3,
+      "injury_time_2": 6
+    },
+    "main_odds": {
+      "outcome_1": {
+        "value": 1.86,
+        "change": 1
+      },
+      "outcome_X": {
+        "value": 3.4,
+        "change": -1
+      },
+      "outcome_2": {
+        "value": 3.5,
+        "change": -1
+      }
+    },
+    "league": {
+      "id": 894,
+      "sport_id": 1,
+      "section_id": 135,
+      "slug": "brazil-brasileiro-serie-a",
+      "name": "Brasileiro S\u00e9rie A",
+      "name_translations": {
+        "en": "Brasileiro S\u00e9rie A",
+        "ru": "\u0411\u0440\u0430\u0437\u0438\u043b\u0438\u044f S\u00e9rie A"
+      },
+      "has_logo": true,
+      "logo": "https://xscore.cc/resb/league/brazil-brasileiro-serie-a.png"
+    },
+    "challenge": {
+      "id": 2335,
+      "sport_id": 1,
+      "league_id": 894,
+      "slug": "brasileiro-serie-a",
+      "name": "Brasileiro S\u00e9rie A",
+      "name_translations": {
+        "en": "Brasileiro S\u00e9rie A",
+        "ru": "\u0411\u0440\u0430\u0437\u0438\u043b\u0438\u044f S\u00e9rie A"
+      },
+      "order": 395,
+      "priority": 0
+    },
+    "season": {
+      "id": 68160,
+      "league_id": 894,
+      "slug": "2026",
+      "name": "Brasileiro Serie A 2026",
+      "year_start": 2026,
+      "year_end": null
+    },
+    "section": {
+      "id": 135,
+      "sport_id": 1,
+      "slug": "brazil",
+      "name": "Brazil",
+      "priority": 0,
+      "flag": "brazil"
+    },
+    "sport": {
+      "id": 1,
+      "slug": "football",
+      "name": "Football"
+    },
+    "venue": {
+      "id": 3495,
+      "slug": "campinas-estadio-brinco-de-ouro-da-princesa",
+      "city": {
+        "en": "Campinas"
+      },
+      "stadium": {
+        "en": "Est\u00e1dio Brinco de Ouro da Princesa"
+      },
+      "stadium_capacity": 29130,
+      "country_name": "Brazil",
+      "country_flag": "brazil"
+    }
+  },
+  "meta": null
+}

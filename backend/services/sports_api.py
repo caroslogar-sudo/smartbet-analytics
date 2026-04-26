@@ -37,8 +37,8 @@ class SportScoreService:
         
         async with httpx.AsyncClient() as client:
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            # Solo 2 llamadas: una para fútbol (1) y otra para baloncesto (3)
-            sports = [(1, "Fútbol"), (3, "Baloncesto")]
+            # 3 llamadas: fútbol (1), tenis (2) y baloncesto (3)
+            sports = [(1, "Fútbol"), (2, "Tenis"), (3, "Baloncesto")]
             
             for sport_id, sport_name in sports:
                 try:
@@ -59,8 +59,8 @@ class SportScoreService:
                         else:
                             continue 
                             
-                        # Si no es Futbol o Baloncesto, ignorar por ahora segun preferencia
-                        if current_sport not in ["Fútbol", "Baloncesto"]:
+                        # Deportes permitidos
+                        if current_sport not in ["Fútbol", "Baloncesto", "Tenis"]:
                             continue
                             
                         main_odds = event.get("main_odds")
@@ -140,8 +140,10 @@ SUPPORTED_LEAGUES: List[Tuple[str, str, str]] = [
     ("soccer_uefa_champs_league",                 "Fútbol", "Champions League"),
     ("soccer_uefa_europa_league",                 "Fútbol", "Europa League"),
     ("soccer_uefa_europa_conference_league",      "Fútbol", "Conference League"),
+    ("soccer_fifa_world_cup",                 "Fútbol", "Mundial"),
+    ("soccer_uefa_euro_championship",         "Fútbol", "Eurocopa"),
     ("basketball_nba",                            "Baloncesto", "NBA"),
-    ("basketball_euroleague",                     "Baloncesto", "Euroliga"), # Como proxy de top europeo
+    ("basketball_euroleague",                     "Baloncesto", "Euroliga"),
 ]
 
 MARKETS_TO_QUERY = "h2h,totals,double_chance"

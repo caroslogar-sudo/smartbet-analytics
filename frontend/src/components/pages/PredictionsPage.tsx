@@ -59,6 +59,7 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
           let accentColor = '#3B82F6';
           if (sportName.toLowerCase().includes('fútbol') || sportName.toLowerCase().includes('soccer')) { icon = '⚽'; accentColor = '#10B981'; }
           if (sportName.toLowerCase().includes('baloncesto') || sportName.toLowerCase().includes('nba')) { icon = '🏀'; accentColor = '#F97316'; }
+          if (sportName.toLowerCase().includes('tenis')) { icon = '🎾'; accentColor = '#A3E635'; }
 
           return {
             sportName,
@@ -136,6 +137,7 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
       let icon = '🎯';
       if (o.sport.toLowerCase().includes('fútbol') || o.sport.toLowerCase().includes('soccer')) icon = '⚽';
       if (o.sport.toLowerCase().includes('baloncesto') || o.sport.toLowerCase().includes('nba')) icon = '🏀';
+      if (o.sport.toLowerCase().includes('tenis')) icon = '🎾';
       sportsMap.set(o.sport, icon);
     });
     return Array.from(sportsMap.entries()).map(([name, icon]) => ({ name, icon }));
