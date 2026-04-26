@@ -8,6 +8,7 @@ import httpx
 import os
 import logging
 import random
+import asyncio
 from typing import List, Tuple, Optional
 from datetime import datetime, timezone
 from models import Opportunity, BookmakerOdds
@@ -18,6 +19,113 @@ logger = logging.getLogger(__name__)
 
 ODDS_API_KEY = os.getenv("THE_ODDS_API_KEY", "")
 ODDS_API_BASE = "https://api.the-odds-api.com/v4/sports"
+
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
+SPORTSCORE_HOST = "sportscore1.p.rapidapi.com"
+
+class SportScoreService:
+    @staticmethod
+    async def fetch_opportunities() -> List[Opportunity]:
+        if not RAPIDAPI_KEY:
+            return []
+
+        all_opps: List[Opportunity] = []
+        headers = {
+            "x-rapidapi-key": RAPIDAPI_KEY,
+            "x-rapidapi-host": SPORTSCORE_HOST
+        }
+        
+        async with httpx.AsyncClient() as client:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            # Solo 2 llamadas: una para fútbol (1) y otra para baloncesto (3)
+            sports = [(1, "Fútbol"), (3, "Baloncesto")]
+            
+            for sport_id, sport_name in sports:
+                try:
+                    url = f"https://{SPORTSCORE_HOST}/events/date/{today}"
+                    resp = await client.get(url, headers=headers, params={"sport_id": sport_id}, timeout=15.0)
+                    if resp.status_code != 200: continue
+                    
+                    events = resp.json().get("data", [])
+                    
+                    for event in events:
+                        e_sport_id = event.get("sport_id")
+                        if e_sport_id == 1:
+                            current_sport = "Fútbol"
+                        elif e_sport_id == 2:
+                            current_sport = "Tenis"
+                        elif e_sport_id == 3:
+                            current_sport = "Baloncesto"
+                        else:
+                            continue 
+                            
+                        # Si no es Futbol o Baloncesto, ignorar por ahora segun preferencia
+                        if current_sport not in ["Fútbol", "Baloncesto"]:
+                            continue
+                            
+                        main_odds = event.get("main_odds")
+                        if not main_odds: continue
+                        
+                        eid = event["id"]
+                        home = event["home_team"]["name"]
+                        away = event["away_team"]["name"]
+                        league = event.get("league", {}).get("name", "Liga")
+                        commence_time = event.get("start_at")
+
+                        # 1. Ganador (Real)
+                        opp_h2h = SportScoreService._create_h2h_from_main_odds(
+                            main_odds, eid, home, away, current_sport, league, commence_time
+                        )
+                        if opp_h2h: all_opps.append(opp_h2h)
+
+                        # 2. Doble Oportunidad (Derivada de Real para Fútbol)
+                        opp_dc = SportScoreService._create_dc_from_main_odds(
+                            main_odds, eid, home, away, current_sport, league, commence_time
+                        )
+                        if opp_dc: all_opps.append(opp_dc)
+
+                except Exception as e:
+                    logger.error(f"Error en SportScore {sport_name}: {e}")
+                    
+        return all_opps
+
+    @staticmethod
+    def _create_h2h_from_main_odds(main_odds, eid, home, away, sport, league, start_time) -> Optional[Opportunity]:
+        outcomes = []
+        if main_odds.get("outcome_1"): outcomes.append({"name": home, "val": main_odds["outcome_1"]["value"]})
+        if main_odds.get("outcome_X"): outcomes.append({"name": "Empate", "val": main_odds["outcome_X"]["value"]})
+        if main_odds.get("outcome_2"): outcomes.append({"name": away, "val": main_odds["outcome_2"]["value"]})
+        
+        if not outcomes: return None
+        
+        fav = min(outcomes, key=lambda o: o["val"])
+        odds = float(fav["val"])
+        cc, kelly = SportsDataService._calculate_cc_and_kelly(odds, odds - 0.04)
+        
+        return Opportunity(
+            id=f"ss_{eid}_h2h", home=home, away=away, comp=league, sport=sport,
+            market="Ganador Partido", market_category="ganador", prediction=f"Gana {fav['name']}" if fav['name'] != "Empate" else "Empate",
+            cc=cc, odds=odds, bookmaker="SportScore", is_live=False, kelly_fraction=kelly,
+            commence_time=start_time, bookmaker_odds=[BookmakerOdds(bookmaker="SportScore", odds=odds)]
+        )
+
+    @staticmethod
+    def _create_dc_from_main_odds(main_odds, eid, home, away, sport, league, start_time) -> Optional[Opportunity]:
+        if sport != "Fútbol": return None
+        o1 = main_odds.get("outcome_1", {}).get("value")
+        ox = main_odds.get("outcome_X", {}).get("value")
+        if not o1 or not ox: return None
+        
+        # Estimación Doble Oportunidad 1X
+        dc_odds = round(1.0 / ((1.0/o1) + (1.0/ox)) * 0.95, 2)
+        cc, kelly = SportsDataService._calculate_cc_and_kelly(dc_odds, dc_odds - 0.02)
+        
+        return Opportunity(
+            id=f"ss_{eid}_dc", home=home, away=away, comp=league, sport=sport,
+            market="Ganar o Empatar", market_category="ganador", prediction=f"{home} o Empate",
+            cc=cc, odds=dc_odds, bookmaker="SportScore", is_live=False, kelly_fraction=kelly,
+            commence_time=start_time, bookmaker_odds=[BookmakerOdds(bookmaker="SportScore", odds=dc_odds)]
+        )
 
 # 11 Ligas de fútbol + 2 de baloncesto
 SUPPORTED_LEAGUES: List[Tuple[str, str, str]] = [
@@ -69,20 +177,28 @@ class SportsDataService:
 
     @staticmethod
     async def fetch_real_opportunities() -> List[Opportunity]:
-        if not ODDS_API_KEY:
-            return []
-
         all_opportunities: List[Opportunity] = []
-        async with httpx.AsyncClient() as client:
-            for league_key, sport_name, league_name in SUPPORTED_LEAGUES:
-                try:
-                    league_opps = await SportsDataService._fetch_league(
-                        client, league_key, sport_name, league_name
-                    )
-                    all_opportunities.extend(league_opps)
-                except Exception as e:
-                    logger.warning(f"Error en {league_name}: {e}")
-                    continue
+        
+        # 1. Intentar con The Odds API (si hay llave)
+        if ODDS_API_KEY:
+            async with httpx.AsyncClient() as client:
+                for league_key, sport_name, league_name in SUPPORTED_LEAGUES:
+                    try:
+                        league_opps = await SportsDataService._fetch_league(
+                            client, league_key, sport_name, league_name
+                        )
+                        all_opportunities.extend(league_opps)
+                    except Exception as e:
+                        logger.warning(f"Error en The Odds API ({league_name}): {e}")
+                        continue
+        
+        # 2. Complementar con SportScore (Multideporte Real)
+        if RAPIDAPI_KEY:
+            try:
+                ss_opps = await SportScoreService.fetch_opportunities()
+                all_opportunities.extend(ss_opps)
+            except Exception as e:
+                logger.error(f"Error en SportScore: {e}")
 
         SportsDataService._last_real_call = datetime.now(timezone.utc)
         return all_opportunities

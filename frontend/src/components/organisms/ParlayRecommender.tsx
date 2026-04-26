@@ -72,7 +72,7 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
           gap: 'var(--space-sm)'
         }}>
           <Sparkles size={24} color="var(--color-primary)" />
-          Combinadas Recomendadas (Parlays)
+          Combinadas Inteligentes (Multi-picks)
         </h2>
         <Button 
           variant="secondary" 
@@ -86,7 +86,7 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
 
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+        gridTemplateColumns: 'repeat(3, 1fr)', 
         gap: 'var(--space-lg)' 
       }}>
         {parlays.map((parlay, idx) => (
@@ -116,7 +116,7 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>Parlay {parlay.size} Selecciones</h3>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>Combo de {parlay.size} Selecciones</h3>
                 <Badge variant="success" text={`CC Promedio: ${parlay.avgCc}%`} />
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -160,7 +160,7 @@ export const ParlayRecommender: React.FC<ParlayRecommenderProps> = ({ opportunit
                 if (onAddToDashboard) {
                   const combinedDesc = parlay.picks.map((p: any) => `${p.prediction} (${p.home})`).join(' + ');
                   onAddToDashboard({
-                    event: 'Apuesta Combinada (Parlay)',
+                    event: 'Apuesta Combinada Inteligente',
                     marketType: 'Múltiple',
                     prediction: combinedDesc,
                     odds: parlay.totalOdds,
