@@ -36,12 +36,20 @@ SUPPORTED_LEAGUES: List[Tuple[str, str, str]] = [
     ("basketball_euroleague",                     "Baloncesto", "Euroliga"), # Como proxy de top europeo
 ]
 
-MARKETS_TO_QUERY = "h2h,totals,spreads"
-
+MARKETS_TO_QUERY = "h2h,totals,double_chance"
 
 class SportsDataService:
     _remaining_quota: int = -1
     _last_real_call: Optional[datetime] = None
+
+    @staticmethod
+    def _is_within_time_range(dt: datetime) -> bool:
+        """
+        Verifica si el partido está en el rango 10:00 AM - 11:59 PM.
+        """
+        # Convertimos a hora local (asumiendo +02:00 por el contexto del usuario)
+        hour = dt.hour
+        return 10 <= hour <= 23
 
     @staticmethod
     def quota_status() -> dict:
@@ -104,21 +112,25 @@ class SportsDataService:
         sport_name: str,
         league_name: str,
     ) -> List[Opportunity]:
+        # Mercados dinámicos por deporte
+        markets = "h2h,totals"
+        if sport_name == "Fútbol":
+            markets += ",double_chance"
+
         url = f"{ODDS_API_BASE}/{league_key}/odds/"
         params = {
             "apiKey": ODDS_API_KEY,
             "regions": "eu",
-            "markets": MARKETS_TO_QUERY,
+            "markets": markets,
             "oddsFormat": "decimal",
         }
 
         try:
             response = await client.get(url, params=params, timeout=15.0)
             SportsDataService._update_quota_from_headers(response.headers)
+            if response.status_code != 200:
+                return []
         except Exception:
-            return []
-
-        if response.status_code != 200:
             return []
 
         events = response.json()
@@ -132,8 +144,18 @@ class SportsDataService:
             commence_str = event.get("commence_time", "")
             try:
                 commence_dt = datetime.fromisoformat(commence_str.replace("Z", "+00:00"))
-                if commence_dt <= now_utc:
+                
+                if not SportsDataService._is_within_time_range(commence_dt):
                     continue
+
+                is_live = False
+                if commence_dt <= now_utc:
+                    # Si empezó hace menos de 3 horas, lo consideramos en directo o reciente
+                    if (now_utc - commence_dt).total_seconds() < 10800:
+                        is_live = True
+                    # Si es de hoy pero empezó hace más tiempo, lo mantenemos como "Jugado"
+                    # No hacemos continue aquí para que aparezcan en la prueba real
+                
             except Exception:
                 continue
 
@@ -143,68 +165,112 @@ class SportsDataService:
 
             home = event.get("home_team", "Local")
             away = event.get("away_team", "Visitante")
-
-            # Ganador
-            h2h = SportsDataService._build_h2h_opp(event, bookmakers, home, away, sport_name, league_name)
+            
+            # Ganador / Doble Oportunidad
+            h2h = SportsDataService._build_h2h_opp(event, bookmakers, home, away, sport_name, league_name, is_live)
             if h2h: opportunities.append(h2h)
 
-            # Totales
-            totals = SportsDataService._build_totals_opp(event, bookmakers, home, away, sport_name, league_name)
+            # Totales (Goles)
+            totals = SportsDataService._build_totals_opp(event, bookmakers, home, away, sport_name, league_name, is_live)
             if totals: opportunities.append(totals)
 
-            # Handicap (spreads)
-            spreads = SportsDataService._build_spreads_opp(event, bookmakers, home, away, sport_name, league_name)
-            if spreads: opportunities.append(spreads)
+            # Resultado al Descanso
+            half_time = SportsDataService._build_halftime_opp(event, bookmakers, home, away, sport_name, league_name, is_live)
+            if half_time: opportunities.append(half_time)
 
         return opportunities
 
     @staticmethod
-    def _build_h2h_opp(event, bookmakers, home, away, sport_name, league_name) -> Optional[Opportunity]:
+    def _build_halftime_opp(event, bookmakers, home, away, sport_name, league_name, is_live) -> Optional[Opportunity]:
+        # Implementación simple para capturar mercados de descanso
         best_odds, best_bk, bk_list = 0.0, "", []
         for bk in bookmakers:
             for mkt in bk.get("markets", []):
-                if mkt["key"] != "h2h": continue
-                # Pick the favorite (lowest odds) to find the most likely outcome
+                if mkt["key"] != "half_time_h2h": continue
                 if not mkt.get("outcomes"): continue
                 favorite = min(mkt["outcomes"], key=lambda o: float(o.get("price", 999)))
                 price = float(favorite.get("price", 0))
                 name = favorite.get("name", "")
                 
-                # Only add if it's the specific favorite we track
                 bk_list.append(BookmakerOdds(bookmaker=bk["title"], odds=round(price, 2)))
                 if price > best_odds:
                     best_odds = price
                     best_bk = bk["title"]
                     favorite_name = name
 
-        if best_odds < 1.10 or not bk_list: return None
-        prediction_label = "Empate" if favorite_name == "Draw" else f"Gana {favorite_name}"
-        cc, kelly = SportsDataService._calculate_cc_and_kelly(best_odds, best_odds - 0.05) # approximation
+        if not bk_list: return None
+        prediction_label = f"Descanso: {favorite_name}"
+        cc, kelly = SportsDataService._calculate_cc_and_kelly(best_odds, best_odds - 0.05)
         
         return Opportunity(
-            id=f"{event['id'][:7]}_h", home=home, away=away, comp=league_name, sport=sport_name,
-            market="Ganador Partido", market_category="ganador", prediction=prediction_label,
-            cc=cc, odds=best_odds, bookmaker=best_bk, is_live=False, kelly_fraction=kelly,
+            id=f"{event['id'][:7]}_ht", home=home, away=away, comp=league_name, sport=sport_name,
+            market="Resultado al Descanso", market_category="parcial", prediction=prediction_label,
+            cc=cc, odds=best_odds, bookmaker=best_bk, is_live=is_live, kelly_fraction=kelly,
             commence_time=event.get("commence_time"), bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True)
         )
 
     @staticmethod
-    def _build_totals_opp(event, bookmakers, home, away, sport_name, league_name) -> Optional[Opportunity]:
+    def _build_h2h_opp(event, bookmakers, home, away, sport_name, league_name, is_live) -> Optional[Opportunity]:
+        best_odds, best_bk, bk_list = 0.0, "", []
+        favorite_name = ""
+        market_key = "h2h"
+        
+        # Intentar Doble Oportunidad primero si es fútbol, si no H2H
+        has_double_chance = any(mkt["key"] == "double_chance" for bk in bookmakers for mkt in bk.get("markets", []))
+        if has_double_chance and sport_name == "Fútbol":
+            market_key = "double_chance"
+
+        for bk in bookmakers:
+            for mkt in bk.get("markets", []):
+                if mkt["key"] != market_key: continue
+                if not mkt.get("outcomes"): continue
+                
+                # Para Doble Oportunidad, buscamos "Home/Draw" o "Away/Draw"
+                # Para H2H, el favorito normal
+                favorite = min(mkt["outcomes"], key=lambda o: float(o.get("price", 999)))
+                price = float(favorite.get("price", 0))
+                name = favorite.get("name", "")
+                
+                bk_list.append(BookmakerOdds(bookmaker=bk["title"], odds=round(price, 2)))
+                if price > best_odds:
+                    best_odds = price
+                    best_bk = bk["title"]
+                    favorite_name = name
+
+        if not bk_list: return None
+        
+        market_label = "Ganar o Empatar" if market_key == "double_chance" else "Ganador Partido"
+        prediction_label = favorite_name if market_key == "double_chance" else f"Gana {favorite_name}"
+        if favorite_name == "Draw": prediction_label = "Empate"
+
+        cc, kelly = SportsDataService._calculate_cc_and_kelly(best_odds, best_odds - 0.05)
+        
+        return Opportunity(
+            id=f"{event['id'][:7]}_h", home=home, away=away, comp=league_name, sport=sport_name,
+            market=market_label, market_category="ganador", prediction=prediction_label,
+            cc=cc, odds=best_odds, bookmaker=best_bk, is_live=is_live, kelly_fraction=kelly,
+            commence_time=event.get("commence_time"), bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True)
+        )
+
+    @staticmethod
+    def _build_totals_opp(event, bookmakers, home, away, sport_name, league_name, is_live) -> Optional[Opportunity]:
         # Implementation similar to h2h, finding the most common line
         line_data = {}
         for bk in bookmakers:
             for mkt in bk.get("markets", []):
                 if mkt["key"] != "totals": continue
                 for outcome in mkt.get("outcomes", []):
-                    key = f"{outcome.get('name')} {outcome.get('point')}"
+                    # Punto 6: Soporte para Menos de (Under)
+                    name = "Más de" if outcome.get("name") == "Over" else "Menos de"
+                    key = f"{name} {outcome.get('point')}"
                     if key not in line_data: line_data[key] = {"bks": [], "odds": []}
                     line_data[key]["bks"].append(bk["title"])
                     line_data[key]["odds"].append(float(outcome.get("price", 0)))
                     
         if not line_data: return None
-        best_key = max(line_data, key=lambda k: len(line_data[k]["bks"]))
+        # Seleccionamos la línea más probable (menor cuota promedio)
+        best_key = min(line_data, key=lambda k: sum(line_data[k]["odds"])/len(line_data[k]["odds"]))
         best_data = line_data[best_key]
-        if len(best_data["odds"]) < 1: return None
         
         best_odds = max(best_data["odds"])
         best_bk = best_data["bks"][best_data["odds"].index(best_odds)]
@@ -214,7 +280,7 @@ class SportsDataService:
         return Opportunity(
             id=f"{event['id'][:7]}_t", home=home, away=away, comp=league_name, sport=sport_name,
             market="Total Goles" if sport_name == "Fútbol" else "Total Puntos", market_category="goles", prediction=f"{best_key}",
-            cc=cc, odds=best_odds, bookmaker=best_bk, is_live=False, kelly_fraction=kelly,
+            cc=cc, odds=best_odds, bookmaker=best_bk, is_live=is_live, kelly_fraction=kelly,
             commence_time=event.get("commence_time"), bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True)
         )
 

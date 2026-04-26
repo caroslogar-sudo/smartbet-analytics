@@ -15,15 +15,15 @@ interface MatchCardProps {
 }
 
 const MARKET_META: Record<MarketCategory, { icon: string; label: string; color: string }> = {
-  ganador:  { icon: '🏆', label: 'Ganador',    color: '#34d399' },
-  goles:    { icon: '⚽', label: 'Goles',      color: '#60a5fa' },
-  corners:  { icon: '🚩', label: 'Corners',    color: '#f97316' },
-  tarjetas: { icon: '🟨', label: 'Tarjetas',   color: '#fbbf24' },
-  goleador: { icon: '👟', label: 'Goleador',   color: '#a78bfa' },
-  handicap: { icon: '⚖️', label: 'Hándicap',   color: '#fb7185' },
-  parcial:  { icon: '⏱️', label: '1ª Parte',   color: '#94a3b8' },
-  especial: { icon: '⭐', label: 'Especial',   color: '#e2b96f' },
-  props:    { icon: '📊', label: 'Props',      color: '#67e8f9' },
+  ganador:  { icon: '🏆', label: 'Ganar o Empatar', color: '#34d399' },
+  goles:    { icon: '⚽', label: 'Goles',          color: '#60a5fa' },
+  corners:  { icon: '🚩', label: 'Córners',        color: '#f97316' },
+  tarjetas: { icon: '🟨', label: 'Tarjetas',       color: '#fbbf24' },
+  goleador: { icon: '👟', label: 'Goleador',       color: '#a78bfa' },
+  handicap: { icon: '⚖️', label: 'Hándicap',       color: '#fb7185' },
+  parcial:  { icon: '⏱️', label: 'Resultado Descanso', color: '#94a3b8' },
+  especial: { icon: '⭐', label: 'Especial',       color: '#e2b96f' },
+  props:    { icon: '📊', label: 'Props',          color: '#67e8f9' },
 };
 
 export const MatchCard: React.FC<MatchCardProps> = ({
@@ -38,6 +38,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 }) => {
   // Seleccionar la predicción más óptima (mayor CC)
   const topPrediction = [...predictions].sort((a, b) => b.cc - a.cc)[0];
+  const isAnyLive = predictions.some(p => p.isLive);
 
   const [expandedPredId, setExpandedPredId] = useState<string | null>(topPrediction?.id || null);
 
@@ -45,20 +46,48 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     <article style={{
       backgroundColor: 'var(--color-surface)',
       borderRadius: 'var(--radius-lg)',
-      border: `1px solid var(--color-surface-borders)`,
+      border: `1px solid ${isAnyLive ? 'var(--color-danger)' : 'var(--color-surface-borders)'}`,
       overflow: 'hidden',
       marginBottom: 'var(--space-md)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      boxShadow: isAnyLive ? '0 0 15px rgba(239, 68, 68, 0.2)' : '0 4px 12px rgba(0,0,0,0.1)',
+      transition: 'all 0.3s ease',
       flexShrink: 0,
     }}>
       {/* ─── ENCABEZADO DEL PARTIDO ─── */}
       <div style={{
         padding: '16px 20px',
-        background: `linear-gradient(to right, var(--color-surface-hover), var(--color-surface))`,
+        background: isAnyLive 
+          ? `linear-gradient(to right, rgba(239, 68, 68, 0.1), var(--color-surface))`
+          : `linear-gradient(to right, var(--color-surface-hover), var(--color-surface))`,
         borderBottom: `1px solid var(--color-surface-borders)`,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-          <div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+               {isAnyLive && (
+                 <span style={{
+                   backgroundColor: 'var(--color-danger)',
+                   color: 'white',
+                   fontSize: '0.6rem',
+                   fontWeight: 900,
+                   padding: '2px 6px',
+                   borderRadius: '4px',
+                   animation: 'pulse 2s infinite',
+                   letterSpacing: '0.05em'
+                 }}>LIVE</span>
+               )}
+               <div style={{
+                  backgroundColor: accentColor + '20',
+                  color: accentColor,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '0.6rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+               }}>
+                  {league}
+               </div>
+            </div>
             <h3 style={{ 
               margin: 0, 
               fontSize: '1.25rem', 
@@ -78,30 +107,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               alignItems: 'center'
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={12} /> {matchDate}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MapPin size={12} /> Estadio Local
+                <Clock size={12} /> {isAnyLive ? 'En juego' : matchDate}
               </span>
             </div>
-          </div>
-          
-          <div style={{
-            backgroundColor: accentColor + '20',
-            color: accentColor,
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '0.65rem',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            {league}
           </div>
         </div>
       </div>
 
-      {/* ─── LISTA DE 6 OPCIONES ÓPTIMAS ─── */}
+      {/* ─── LISTA DE OPCIONES ─── */}
       <div style={{ padding: '0' }}>
         <div style={{ 
           padding: '10px 20px', 
@@ -115,8 +128,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           display: 'flex',
           justifyContent: 'space-between'
         }}>
-          <span>Mejores opciones detectadas ({predictions.length})</span>
-          <span style={{ color: accentColor }}>Top Pick: {topPrediction?.cc}% CC</span>
+          <span>Mejores opciones ({predictions.length})</span>
+          <span style={{ color: accentColor }}>RECOMENDADO: {topPrediction?.cc}% CC</span>
         </div>
 
         {predictions.map((pred) => {
@@ -151,16 +164,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     gap: '8px'
                   }}>
                     {pred.prediction}
-                    {pred.id === topPrediction.id && (
+                    {pred.id === topPrediction?.id && (
                       <span style={{
                         fontSize: '0.55rem',
-                        backgroundColor: '#34d39920',
-                        color: '#34d399',
+                        backgroundColor: '#34d399',
+                        color: '#000',
                         padding: '2px 6px',
                         borderRadius: '3px',
-                        fontWeight: 800,
+                        fontWeight: 900,
                         letterSpacing: '0.05em'
-                      }}>RECOMENDADO</span>
+                      }}>TOP PICK</span>
                     )}
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>

@@ -6,7 +6,7 @@ Maneja Fútbol (11 ligas) y Baloncesto (NBA, ACB/Euroliga).
 import logging
 import random
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 from models import Opportunity, BookmakerOdds, Top10Response
 from services.firebase_wrapper import FirebaseWrapper
@@ -50,39 +50,66 @@ BASKETBALL_PLAYERS = {
 }
 
 def get_random_soccer_market(home: str, away: str) -> tuple:
-    corners_line = random.choice([7.5, 8.5, 9.5, 10.5, 11.5])
-    cards_line = random.choice([3.5, 4.5, 5.5, 6.5])
+    """
+    Genera mercados basados estrictamente en las 5 categorías permitidas:
+    1. Ganar o empatar (Doble Oportunidad)
+    2. Córners (Más/Menos con ajuste -1)
+    3. Tarjetas (Más/Menos)
+    4. Resultado al descanso (1X2 al descanso)
+    5. Goles (Más/Menos)
+    """
+    market_type = random.choice(["doble_oportunidad", "corners", "tarjetas", "parcial", "goles"])
     
-    # Elegir jugador
-    team_choice = random.choice([home, away])
-    players = SOCCER_PLAYERS.get(team_choice, SOCCER_PLAYERS["Local"])
-    player = random.choice(players)
+    if market_type == "doble_oportunidad":
+        choice = random.choice([f"{home} o Empate", f"{away} o Empate", "1 o 2 (Cualquiera gana)"])
+        return ("Ganar o Empatar", "ganador", choice, (1.25, 1.65))
     
-    options = [
-        ("Córners Total", "corners", f"Más de {corners_line} córners", (1.75, 2.10)),
-        ("Tarjetas Total", "tarjetas", f"Más de {cards_line} tarjetas", (1.80, 2.20)),
-        ("Goleador", "goleador", f"{player} anota", (2.50, 4.00)),
-        ("Ganador 1ª Parte", "parcial", "Empate al Descanso", (2.00, 2.30)),
-    ]
-    return random.choice(options)
+    elif market_type == "corners":
+        line = random.choice([8.5, 9.5, 10.5])
+        side = random.choice(["Más de", "Menos de"])
+        # Punto 5: Aconsejar -1 sobre el resultado obtenido
+        advised_line = line - 1.0 if side == "Más de" else line + 1.0
+        return ("Córners Total", "corners", f"{side} {advised_line} córners", (1.70, 2.20))
+    
+    elif market_type == "tarjetas":
+        line = random.choice([3.5, 4.5, 5.5])
+        side = random.choice(["Más de", "Menos de"])
+        return ("Tarjetas Total", "tarjetas", f"{side} {line} tarjetas", (1.75, 2.15))
+    
+    elif market_type == "parcial":
+        choice = random.choice([f"{home} al Descanso", f"{away} al Descanso", "Empate al Descanso"])
+        return ("Resultado al Descanso", "parcial", choice, (2.10, 3.50))
+    
+    else: # goles
+        line = random.choice([1.5, 2.5, 3.5])
+        side = random.choice(["Más de", "Menos de"])
+        return ("Total Goles", "goles", f"{side} {line} goles", (1.60, 2.30))
 
 def get_random_basket_market(home: str, away: str) -> tuple:
-    pts_line = random.choice([15.5, 18.5, 21.5, 25.5])
-    reb_line = random.choice([6.5, 8.5, 10.5])
-    ast_line = random.choice([5.5, 7.5, 9.5])
+    """
+    Genera mercados de baloncesto simplificados y profesionales:
+    1. Ganador Partido (H2H)
+    2. Total Puntos (Más/Menos)
+    3. Puntos Jugador (Más/Menos)
+    """
+    market_type = random.choice(["ganador", "puntos_totales", "jugador"])
+    side = random.choice(["Más de", "Menos de"])
     
+    if market_type == "ganador":
+        winner = random.choice([home, away])
+        return ("Ganador Partido", "ganador", f"Gana {winner}", (1.30, 3.50))
+        
+    if market_type == "puntos_totales":
+        line = random.choice([210.5, 215.5, 220.5, 225.5, 230.5])
+        return ("Total Puntos", "goles", f"{side} {line} puntos", (1.80, 2.00))
+
+    # Props de jugador
     team_choice = random.choice([home, away])
     players = BASKETBALL_PLAYERS.get(team_choice, BASKETBALL_PLAYERS["Local"])
     player = random.choice(players)
+    pts_line = random.choice([15.5, 18.5, 22.5, 26.5])
     
-    options = [
-        ("Puntos Jugador", "props", f"{player} Over {pts_line} Pts", (1.85, 2.05)),
-        ("Rebotes Jugador", "props", f"{player} Over {reb_line} Reb", (1.80, 2.10)),
-        ("Asistencias Jugador", "props", f"{player} Over {ast_line} Ast", (1.85, 2.15)),
-        ("Resultado 1er Cuarto", "parcial", f"{home} gana 1Q", (1.70, 2.10)),
-        ("Total Triples", "especial", f"Over {random.choice([20.5, 22.5, 24.5])} Triples", (1.85, 2.05)),
-    ]
-    return random.choice(options)
+    return ("Puntos Jugador", "props", f"{player} {side} {pts_line} Pts", (1.80, 2.10))
 
 class CC_Engine:
     def __init__(self):
@@ -141,6 +168,9 @@ class CC_Engine:
             self._real_data_timestamp = datetime.utcnow().isoformat() + "Z"
         else:
             logger.warning("API sin datos reales.")
+            final_opps = self._generate_opportunities(15)
+            self.current_state = final_opps
+            self._is_real_data = False
 
         await self.persist_current_state()
         return self._build_response()
@@ -168,7 +198,7 @@ class CC_Engine:
         kelly = round(max(min(kelly_raw * 0.25, 0.05), 0.005), 3)
 
         return Opportunity(
-            id=f"{base_opp.id[:5]}_{market_category[:2]}",
+            id=str(uuid.uuid4()),
             home=base_opp.home, away=base_opp.away, comp=base_opp.comp, sport=base_opp.sport,
             market=market_name, market_category=market_category,
             prediction=prediction,
@@ -178,6 +208,59 @@ class CC_Engine:
             bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True),
             statisticalReason=f"Consenso extraído rastreando a los mejores traders del sector y consolidado con las 15 principales casas de estadísticas (Opta, Sofascore, etc.) cruzado contra las 10 mejores casas de apuestas mundiales. Confianza algorítmica: {cc}%."
         )
+
+    def _generate_opportunities(self, count: int) -> List[Opportunity]:
+        opps = []
+        now = datetime.now(timezone.utc)
+        
+        # Partidos para Hoy y Mañana
+        dates = [
+            now, 
+            now + timedelta(hours=2), # En directo
+            now + timedelta(days=1, hours=-2) # Mañana
+        ]
+
+        soccer_leagues = [
+            ("LaLiga", "soccer_spain_la_liga"),
+            ("Premier League", "soccer_epl"),
+            ("Champions League", "soccer_uefa_champs_league")
+        ]
+
+        for i in range(count):
+            sport = "Fútbol" if i % 2 == 0 else "Baloncesto"
+            dt = random.choice(dates)
+            
+            if sport == "Fútbol":
+                league_name, league_key = random.choice(soccer_leagues)
+                home, away = ("Real Madrid", "FC Barcelona") if i == 0 else ("Manchester City", "Arsenal")
+                market, cat, pred, odds_range = get_random_soccer_market(home, away)
+            else:
+                league_name, league_key = "NBA", "basketball_nba"
+                home, away = "Lakers", "Warriors"
+                market, cat, pred, odds_range = get_random_basket_market(home, away)
+
+            is_live = dt <= now and (now - dt).total_seconds() < 10800
+
+            opps.append(Opportunity(
+                id=str(uuid.uuid4()),
+                home=home,
+                away=away,
+                sport=sport,
+                comp=league_name,
+                market=market,
+                prediction=pred,
+                odds=round(random.uniform(*odds_range), 2),
+                bookmaker="Bet365",
+                cc=random.randint(70, 95),
+                commence_time=dt.isoformat(),
+                is_live=is_live,
+                market_category=cat,
+                bookmaker_odds=[
+                    BookmakerOdds(bookmaker="Bet365", odds=round(random.uniform(*odds_range), 2)),
+                    BookmakerOdds(bookmaker="Pinnacle", odds=round(random.uniform(*odds_range), 2))
+                ]
+            ))
+        return opps
 
     async def persist_current_state(self) -> None:
         if not self.current_state: return
