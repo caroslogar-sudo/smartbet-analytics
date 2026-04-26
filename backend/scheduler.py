@@ -41,10 +41,17 @@ async def run_engine_cycle_loop() -> None:
         logger.error(f"Error en estado inicial: {exc}")
 
     while True:
-        await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
         try:
-            # Solo re-persiste el estado actual en Firestore sin llamar a la API
+            # 1. Limpieza de datos antiguos (ventana de 48h)
+            from services.firebase_wrapper import FirebaseWrapper
+            deleted_count = FirebaseWrapper.delete_old_opportunities(48)
+            if deleted_count > 0:
+                logger.info(f"Limpieza: {deleted_count} oportunidades antiguas eliminadas.")
+
+            # 2. Persistencia del estado actual
             await engine.persist_current_state()
-            logger.info("Heartbeat: estado actual re-persistido en Firestore.")
+            logger.info("Heartbeat: Estado persistido y limpieza ejecutada.")
         except Exception as exc:
-            logger.error(f"Error en heartbeat: {exc}")
+            logger.error(f"Error en loop de scheduler: {exc}")
+        
+        await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)

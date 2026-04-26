@@ -95,3 +95,28 @@ class FirebaseWrapper:
             doc_ref = db.collection("opportunities").document(opp["id"])
             batch.set(doc_ref, opp, merge=True)
         batch.commit()
+
+    @classmethod
+    def delete_old_opportunities(cls, hours_threshold: int = 48):
+        """Elimina oportunidades cuyo commence_time sea más antiguo que el umbral especificado."""
+        db = cls.get_db()
+        if not db: return
+
+        from datetime import datetime, timedelta, timezone
+        threshold_dt = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
+        
+        # Obtenemos las oportunidades antiguas
+        # Nota: Usamos una consulta simple por commence_time
+        docs = db.collection("opportunities").where("commence_time", "<", threshold_dt.isoformat()).stream()
+        
+        count = 0
+        batch = db.batch()
+        for doc in docs:
+            batch.delete(doc.reference)
+            count += 1
+            if count >= 400: # Límite de batch en Firestore
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        batch.commit()
+        return count

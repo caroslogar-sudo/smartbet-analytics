@@ -8,7 +8,7 @@ interface NavbarProps {
   onNavigate: (page: string) => void;
 }
 
-const NAV_ITEMS = ['INICIO', 'PREDICCIONES', 'MULTIAPUESTAS', 'DIRECTOS', 'DASHBOARD'] as const;
+const NAV_ITEMS = ['INICIO', 'PREDICCIONES', 'MULTIAPUESTAS', 'DASHBOARD'] as const;
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const BACKEND_STATUS_URL = `${API_BASE_URL}/api/status`;

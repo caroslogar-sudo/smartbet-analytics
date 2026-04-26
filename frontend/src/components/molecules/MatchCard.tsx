@@ -38,44 +38,28 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 }) => {
   // Seleccionar la predicción más óptima (mayor CC)
   const topPrediction = [...predictions].sort((a, b) => b.cc - a.cc)[0];
-  const isAnyLive = predictions.some(p => p.isLive);
-
   const [expandedPredId, setExpandedPredId] = useState<string | null>(topPrediction?.id || null);
 
   return (
     <article style={{
       backgroundColor: 'var(--color-surface)',
       borderRadius: 'var(--radius-lg)',
-      border: `1px solid ${isAnyLive ? 'var(--color-danger)' : 'var(--color-surface-borders)'}`,
+      border: '1px solid var(--color-surface-borders)',
       overflow: 'hidden',
       marginBottom: 'var(--space-md)',
-      boxShadow: isAnyLive ? '0 0 15px rgba(239, 68, 68, 0.2)' : '0 4px 12px rgba(0,0,0,0.1)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       transition: 'all 0.3s ease',
       flexShrink: 0,
     }}>
       {/* ─── ENCABEZADO DEL PARTIDO ─── */}
       <div style={{
         padding: '16px 20px',
-        background: isAnyLive 
-          ? `linear-gradient(to right, rgba(239, 68, 68, 0.1), var(--color-surface))`
-          : `linear-gradient(to right, var(--color-surface-hover), var(--color-surface))`,
+        background: `linear-gradient(to right, var(--color-surface-hover), var(--color-surface))`,
         borderBottom: `1px solid var(--color-surface-borders)`,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-               {isAnyLive && (
-                 <span style={{
-                   backgroundColor: 'var(--color-danger)',
-                   color: 'white',
-                   fontSize: '0.6rem',
-                   fontWeight: 900,
-                   padding: '2px 6px',
-                   borderRadius: '4px',
-                   animation: 'pulse 2s infinite',
-                   letterSpacing: '0.05em'
-                 }}>LIVE</span>
-               )}
                <div style={{
                   backgroundColor: accentColor + '20',
                   color: accentColor,
@@ -107,7 +91,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               alignItems: 'center'
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={12} /> {isAnyLive ? 'En juego' : matchDate}
+                <Clock size={12} /> {matchDate}
               </span>
             </div>
           </div>

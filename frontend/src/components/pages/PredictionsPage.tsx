@@ -165,32 +165,6 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
           border: '1px solid var(--color-surface-borders)',
         }}>
           <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-            <button 
-              onClick={() => setFilterLive(!filterLive)}
-              style={{
-                padding: '6px 16px',
-                borderRadius: 'var(--radius-full)',
-                border: `1px solid ${filterLive ? 'var(--color-danger)' : 'var(--color-surface-borders)'}`,
-                backgroundColor: filterLive ? 'var(--color-danger)' : 'transparent',
-                color: filterLive ? 'white' : 'var(--color-text-secondary)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <div style={{ 
-                width: '8px', 
-                height: '8px', 
-                borderRadius: '50%', 
-                backgroundColor: filterLive ? 'white' : 'var(--color-danger)', 
-                animation: filterLive ? 'pulse 1.5s infinite' : 'none' 
-              }}></div>
-              DIRECTOS
-            </button>
-            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--color-surface-borders)', margin: '0 8px' }}></div>
             <button onClick={() => setFilterSport(null)} style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', border: '1px solid var(--color-surface-borders)', backgroundColor: filterSport === null ? 'var(--color-primary)' : 'transparent', color: filterSport === null ? 'white' : 'var(--color-text-secondary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Todos</button>
             {uniqueSports.map(s => (
               <button key={s.name} onClick={() => setFilterSport(s.name)} style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', border: '1px solid var(--color-surface-borders)', backgroundColor: filterSport === s.name ? 'var(--color-primary)' : 'transparent', color: filterSport === s.name ? 'white' : 'var(--color-text-secondary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>

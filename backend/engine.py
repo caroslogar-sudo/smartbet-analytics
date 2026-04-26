@@ -213,11 +213,10 @@ class CC_Engine:
         opps = []
         now = datetime.now(timezone.utc)
         
-        # Partidos para Hoy y Mañana
         dates = [
-            now, 
-            now + timedelta(hours=2), # En directo
-            now + timedelta(days=1, hours=-2) # Mañana
+            now + timedelta(hours=3), # Hoy tarde
+            now + timedelta(days=1),  # Mañana
+            now + timedelta(days=2)   # Pasado mañana
         ]
 
         soccer_leagues = [
@@ -253,7 +252,7 @@ class CC_Engine:
                 bookmaker="Bet365",
                 cc=random.randint(70, 95),
                 commence_time=dt.isoformat(),
-                is_live=is_live,
+                is_live=False,
                 market_category=cat,
                 bookmaker_odds=[
                     BookmakerOdds(bookmaker="Bet365", odds=round(random.uniform(*odds_range), 2)),

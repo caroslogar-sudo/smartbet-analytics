@@ -7,11 +7,10 @@ import { PredictionsPage } from './components/pages/PredictionsPage';
 import { DashboardPage } from './components/pages/DashboardPage';
 import { HomePage } from './components/pages/HomePage';
 import { MultiapuestasPage } from './components/pages/MultiapuestasPage';
-import { DirectosPage } from './components/pages/DirectosPage';
 import { Navbar } from './components/organisms/Navbar';
 import type { BetFormData } from './components/molecules/BetRegistrationModal';
 
-type AppPage = 'INICIO' | 'PREDICCIONES' | 'MULTIAPUESTAS' | 'DIRECTOS' | 'DASHBOARD';
+type AppPage = 'INICIO' | 'PREDICCIONES' | 'MULTIAPUESTAS' | 'DASHBOARD';
 
 /**
  * Escucha nuevas oportunidades en tiempo real y dispara alertas si CC > 90.
@@ -89,8 +88,6 @@ function MainApp() {
         return <PredictionsPage onAddToDashboard={handleAddToDashboard} />;
       case 'MULTIAPUESTAS':
         return <MultiapuestasPage onAddToDashboard={handleAddToDashboard} />;
-      case 'DIRECTOS':
-        return <DirectosPage />;
       case 'DASHBOARD':
         return <DashboardPage
           prefill={dashboardPrefill}

@@ -398,6 +398,218 @@ export const HomePage: React.FC = () => {
         <SportHighlightCard sport={alt.sport} topOpportunity={alt.opp} label={`Top ${alt.sport}`} />
       </section>
 
+      {/* ─── SECCIÓN EXCLUSIVA: LAS 10 JOYAS DEL DÍA (>75% CC) ─── */}
+      <section style={{
+        padding: 'var(--space-xl) var(--space-xl)',
+        maxWidth: '1400px',
+        margin: '0 auto'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 'var(--space-lg)',
+          borderLeft: '4px solid #fbbf24',
+          paddingLeft: '16px'
+        }}>
+          <div>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Zap size={24} color="#fbbf24" fill="#fbbf24" />
+              Las 10 Joyas del Día
+            </h2>
+            <p style={{ color: 'var(--color-text-secondary)', margin: '4px 0 0 0', fontSize: '0.9rem' }}>
+              Selecciones exclusivas con fiabilidad superior al <strong style={{ color: '#fbbf24' }}>75%</strong> detectadas por el algoritmo.
+            </p>
+          </div>
+          <Badge text="MÁXIMA FIABILIDAD" variant="warning" />
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+          gap: 'var(--space-md)',
+        }}>
+          {opportunities
+            .filter(o => o.cc >= 75)
+            .sort((a, b) => b.cc - a.cc)
+            .slice(0, 10)
+            .map((o, idx) => (
+              <div key={o.id} style={{
+                backgroundColor: 'var(--color-surface)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid rgba(251, 191, 36, 0.2)',
+                padding: 'var(--space-lg)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'transform 0.2s ease',
+                cursor: 'default'
+              }}>
+                <div style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 900,
+                  color: 'rgba(251, 191, 36, 0.1)',
+                  position: 'absolute',
+                  right: '10px',
+                  bottom: '-5px',
+                  zIndex: 0
+                }}>
+                  #{idx + 1}
+                </div>
+                
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fbbf24',
+                  flexShrink: 0
+                }}>
+                  {getSportIcon(o.sport)}
+                </div>
+
+                <div style={{ flex: 1, zIndex: 1 }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {o.comp}
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                    {o.home} vs {o.away}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-secondary)', marginTop: '2px' }}>
+                    {o.prediction}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', zIndex: 1 }}>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>CC%</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fbbf24' }}>{o.cc}%</div>
+                </div>
+              </div>
+            ))
+          }
+          {opportunities.filter(o => o.cc >= 75).length === 0 && (
+            <div style={{
+              gridColumn: '1 / -1',
+              padding: 'var(--space-xxl)',
+              textAlign: 'center',
+              backgroundColor: 'rgba(255,255,255,0.02)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px dashed var(--color-surface-borders)'
+            }}>
+              <p style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+                Buscando gemas en el mercado... Vuelve en unos minutos.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ─── NUEVA SECCIÓN: CONSULTA DE DATOS (AHORRO API) ─── */}
+      <section style={{
+        padding: 'var(--space-xl) var(--space-xl)',
+        maxWidth: '1400px',
+        margin: '0 auto'
+      }}>
+        <div style={{
+          backgroundColor: 'var(--color-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--color-surface-borders)',
+          overflow: 'hidden',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        }}>
+          <div style={{
+            padding: 'var(--space-xl)',
+            borderBottom: '1px solid var(--color-surface-borders)',
+            background: 'linear-gradient(90deg, var(--color-surface), var(--color-surface-hover))'
+          }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ExternalLink size={24} color="var(--color-primary)" />
+              Centro de Consulta de Datos en Tiempo Real
+            </h2>
+            <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px', fontSize: '0.95rem' }}>
+              Utiliza estas fuentes de referencia para contrastar nuestras predicciones y seguir marcadores sin coste de API.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 'var(--space-lg)',
+            padding: 'var(--space-xl)',
+          }}>
+            {/* Fuente 1: Marcadores */}
+            <div style={{
+              padding: 'var(--space-lg)',
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--color-surface-borders)',
+              transition: 'transform 0.3s ease',
+              cursor: 'pointer'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>Marcadores en Vivo</div>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '1.2rem' }}>Flashscore / Mis Marcadores</h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: '20px' }}>
+                La referencia número 1 para seguir tus predicciones en tiempo real con estadísticas profundas de cada partido.
+              </p>
+              <a href="https://www.flashscore.es" target="_blank" rel="noopener noreferrer" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                padding: '10px 20px', backgroundColor: 'var(--color-primary)',
+                color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem'
+              }}>
+                Abrir Marcadores <ExternalLink size={14} />
+              </a>
+            </div>
+
+            {/* Fuente 2: Estadísticas Profundas */}
+            <div style={{
+              padding: 'var(--space-lg)',
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--color-surface-borders)'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>Estadística Avanzada</div>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '1.2rem' }}>Sofascore</h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: '20px' }}>
+                Mapas de calor, alineaciones confirmadas y ratings de jugadores para validar nuestras "Razones Estadísticas".
+              </p>
+              <a href="https://www.sofascore.com" target="_blank" rel="noopener noreferrer" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                padding: '10px 20px', backgroundColor: 'var(--color-secondary)',
+                color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem'
+              }}>
+                Consultar Sofascore <ExternalLink size={14} />
+              </a>
+            </div>
+
+            {/* Fuente 3: Comparativa Global */}
+            <div style={{
+              padding: 'var(--space-lg)',
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--color-surface-borders)'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', marginBottom: '8px' }}>Mercado Global</div>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '1.2rem' }}>OddsPortal</h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: '20px' }}>
+                Compara el movimiento de cuotas en tiempo real para detectar dónde está entrando el dinero inteligente.
+              </p>
+              <a href="https://www.oddsportal.com" target="_blank" rel="noopener noreferrer" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                padding: '10px 20px', backgroundColor: '#f97316',
+                color: 'white', borderRadius: 'var(--radius-md)', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem'
+              }}>
+                Ver Movimientos <ExternalLink size={14} />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Disclaimers y datos legales */}
       <LegalDisclaimer />
     </div>
