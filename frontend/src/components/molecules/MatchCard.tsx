@@ -38,7 +38,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 }) => {
   // Seleccionar la predicción más óptima (mayor CC)
   const topPrediction = [...predictions].sort((a, b) => b.cc - a.cc)[0];
-  const [expandedPredId, setExpandedPredId] = useState<string | null>(topPrediction?.id || null);
+  const [expandedPredId, setExpandedPredId] = useState<string | null>(null);
 
   return (
     <article style={{

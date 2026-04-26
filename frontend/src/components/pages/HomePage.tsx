@@ -85,22 +85,17 @@ const SportHighlightCard: React.FC<SportHighlightCardProps> = ({ sport, topOppor
   const gradient = getSportGradient(sport);
   const accent = getSportAccent(sport);
 
-  const [isRevealed, setIsRevealed] = React.useState(false);
-
   return (
     <Card 
       interactive 
-      onClick={() => setIsRevealed(true)}
       style={{
         flex: '1 1 0',
         minWidth: '280px',
         background: gradient,
-        border: isRevealed ? `1px solid ${accent}66` : `1px solid ${accent}33`,
+        border: `1px solid ${accent}33`,
         padding: 0,
         overflow: 'hidden',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: isRevealed ? 'translateY(-5px)' : 'translateY(0)',
-        boxShadow: isRevealed ? `0 15px 30px -10px ${accent}44` : 'none'
       }}
     >
       <div style={{ padding: 'var(--space-lg)' }}>
@@ -163,13 +158,12 @@ const SportHighlightCard: React.FC<SportHighlightCardProps> = ({ sport, topOppor
               {topOpportunity.comp} • {topOpportunity.commence_time ? new Date(topOpportunity.commence_time).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Hoy'}
             </p>
 
-            {/* Stats row with Reveal mechanism */}
+            {/* Stats row */}
             <div style={{
               display: 'flex',
               gap: 'var(--space-md)',
               alignItems: 'center',
-              flexWrap: 'wrap',
-              position: 'relative'
+              flexWrap: 'wrap'
             }}>
               <div style={{
                 backgroundColor: `${accent}22`,
@@ -177,23 +171,10 @@ const SportHighlightCard: React.FC<SportHighlightCardProps> = ({ sport, topOppor
                 borderRadius: 'var(--radius-sm)',
                 border: `1px solid ${accent}40`,
                 width: '100%',
-                marginBottom: '4px',
-                minHeight: '44px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                cursor: isRevealed ? 'default' : 'pointer'
+                marginBottom: '4px'
               }}>
                 <div style={{ fontSize: '0.6rem', color: accent, letterSpacing: '0.05em' }}>PRONÓSTICO RECOMENDADO</div>
-                {!isRevealed ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white', fontSize: '0.85rem', fontWeight: 700 }}>
-                    <Zap size={14} color={accent} fill={accent} /> Revelar con IA
-                  </div>
-                ) : (
-                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text-primary)', animation: 'fadeIn 0.5s ease-out' }}>
-                    {topOpportunity.prediction}
-                  </div>
-                )}
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>{topOpportunity.prediction}</div>
               </div>
               
               <div style={{ display: 'flex', gap: 'var(--space-sm)', width: '100%' }}>
@@ -204,11 +185,7 @@ const SportHighlightCard: React.FC<SportHighlightCardProps> = ({ sport, topOppor
                   flex: 1
                 }}>
                   <div style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', letterSpacing: '0.05em' }}>CC</div>
-                  {!isRevealed ? (
-                    <div style={{ height: '18px', width: '24px', backgroundColor: accent, opacity: 0.2, filter: 'blur(4px)', marginTop: '2px' }}></div>
-                  ) : (
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: accent, animation: 'fadeIn 0.5s ease-out' }}>{topOpportunity.cc}%</div>
-                  )}
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: accent }}>{topOpportunity.cc}%</div>
                 </div>
                 <div style={{
                   backgroundColor: 'rgba(0,0,0,0.3)',
@@ -217,13 +194,9 @@ const SportHighlightCard: React.FC<SportHighlightCardProps> = ({ sport, topOppor
                   flex: 1
                 }}>
                   <div style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', letterSpacing: '0.05em' }}>CUOTA</div>
-                  {!isRevealed ? (
-                    <div style={{ height: '18px', width: '30px', backgroundColor: 'var(--color-secondary)', opacity: 0.2, filter: 'blur(4px)', marginTop: '2px' }}></div>
-                  ) : (
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-secondary)', animation: 'fadeIn 0.5s ease-out' }}>
-                      {topOpportunity.odds.toFixed(2)}
-                    </div>
-                  )}
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
+                    {topOpportunity.odds.toFixed(2)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -385,6 +358,71 @@ const LegalDisclaimer: React.FC = () => (
   </footer>
 );
 
+const JoyaCard: React.FC<{ o: Opportunity; idx: number }> = ({ o, idx }) => {
+  return (
+    <div 
+      style={{
+        backgroundColor: 'var(--color-surface)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid rgba(251, 191, 36, 0.2)',
+        padding: 'var(--space-lg)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'transform 0.2s ease',
+        cursor: 'default'
+      }}
+    >
+      <div style={{
+        fontSize: '1.5rem',
+        fontWeight: 900,
+        color: 'rgba(251, 191, 36, 0.1)',
+        position: 'absolute',
+        right: '10px',
+        bottom: '-5px',
+        zIndex: 0
+      }}>
+        #{idx + 1}
+      </div>
+      
+      <div style={{
+        width: '48px',
+        height: '48px',
+        borderRadius: '12px',
+        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fbbf24',
+        flexShrink: 0
+      }}>
+        {getSportIcon(o.sport)}
+      </div>
+
+      <div style={{ flex: 1, zIndex: 1 }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {o.comp}
+        </div>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+          {o.home} vs {o.away}
+        </div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-secondary)', marginTop: '2px' }}>
+          {o.prediction}
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'right', zIndex: 1, minWidth: '50px' }}>
+        <div style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>CC%</div>
+        <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fbbf24' }}>
+          {o.cc}%
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Page Principal ─── */
 export const HomePage: React.FC = () => {
   const { opportunities } = useLiveTop10();
@@ -464,118 +502,9 @@ export const HomePage: React.FC = () => {
             .filter(o => o.cc >= 75)
             .sort((a, b) => b.cc - a.cc)
             .slice(0, 10)
-            .map((o, idx) => {
-              const [isRevealed, setIsRevealed] = React.useState(false);
-              
-              return (
-                <div 
-                  key={o.id} 
-                  onClick={() => setIsRevealed(true)}
-                  style={{
-                    backgroundColor: 'var(--color-surface)',
-                    borderRadius: 'var(--radius-lg)',
-                    border: isRevealed ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(251, 191, 36, 0.1)',
-                    padding: 'var(--space-lg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    cursor: isRevealed ? 'default' : 'pointer',
-                    boxShadow: isRevealed ? '0 10px 25px -5px rgba(251, 191, 36, 0.1)' : 'none',
-                    transform: isRevealed ? 'scale(1.02)' : 'scale(1)'
-                  }}
-                >
-                  <div style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 900,
-                    color: 'rgba(251, 191, 36, 0.1)',
-                    position: 'absolute',
-                    right: '10px',
-                    bottom: '-5px',
-                    zIndex: 0
-                  }}>
-                    #{idx + 1}
-                  </div>
-                  
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fbbf24',
-                    flexShrink: 0
-                  }}>
-                    {getSportIcon(o.sport)}
-                  </div>
-
-                  <div style={{ flex: 1, zIndex: 1 }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {o.comp}
-                    </div>
-                    <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                      {o.home} vs {o.away}
-                    </div>
-                    
-                    <div style={{ 
-                      marginTop: '4px',
-                      position: 'relative',
-                      minHeight: '20px'
-                    }}>
-                      {!isRevealed ? (
-                        <div style={{ 
-                          fontSize: '0.85rem', 
-                          fontWeight: 700, 
-                          color: '#fbbf24', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '6px'
-                        }}>
-                          <Zap size={14} /> Toca para revelar pick
-                        </div>
-                      ) : (
-                        <div style={{ 
-                          fontSize: '0.85rem', 
-                          fontWeight: 700, 
-                          color: 'var(--color-secondary)',
-                          animation: 'fadeIn 0.5s ease-out'
-                        }}>
-                          {o.prediction}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right', zIndex: 1, minWidth: '50px' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>CC%</div>
-                    {!isRevealed ? (
-                      <div style={{ 
-                        width: '32px', 
-                        height: '16px', 
-                        backgroundColor: 'rgba(251, 191, 36, 0.2)', 
-                        borderRadius: '4px',
-                        marginLeft: 'auto',
-                        marginTop: '4px',
-                        filter: 'blur(4px)'
-                      }}></div>
-                    ) : (
-                      <div style={{ 
-                        fontSize: '1.2rem', 
-                        fontWeight: 900, 
-                        color: '#fbbf24',
-                        animation: 'fadeIn 0.5s ease-out'
-                      }}>
-                        {o.cc}%
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+            .map((o, idx) => (
+              <JoyaCard key={o.id} o={o} idx={idx} />
+            ))
           }
           {opportunities.filter(o => o.cc >= 75).length === 0 && (
             <div style={{
