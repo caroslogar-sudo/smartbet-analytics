@@ -2,8 +2,13 @@ import React, { useMemo } from 'react';
 import { MatchCard } from '../molecules/MatchCard';
 import { useLiveTop10 } from '../../hooks/useLiveTop10';
 import type { MarketCategory } from '../../data/mockPredictions';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap } from 'lucide-react';
 import type { BetFormData } from '../molecules/BetRegistrationModal';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
+import { apiClient } from '../../services/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface PredictionsPageProps {
   onAddToDashboard?: (prefill: Partial<BetFormData>) => void;
@@ -30,8 +35,39 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
   const [filterLive, setFilterLive] = React.useState(false);
   const [filterSport, setFilterSport] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   
   const { opportunities } = useLiveTop10();
+  const { currentUser } = useAuth();
+  const { showNotification } = useNotifications();
+
+  const handleRefreshReal = async () => {
+    if (!currentUser) return;
+    
+    setIsRefreshing(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await apiClient.post<any>(`${API_BASE_URL}/api/refresh-manual`, {}, token);
+      
+      if (response.error) {
+        showNotification({
+          type: 'error',
+          title: 'Error de Actualización',
+          message: 'No se pudo conectar con el engine para el análisis real.',
+        });
+      } else {
+        showNotification({
+          type: 'success',
+          title: 'Análisis Completado',
+          message: `Se han cargado ${response.data.real_predictions} predicciones reales (Créditos: ${response.data.api_credits_remaining})`,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const LIVE_SPORTS_DATA = useMemo(() => {
     // Agrupación por Fecha -> Deporte -> País -> Liga
@@ -189,23 +225,50 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
             ))}
           </div>
 
-          <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
-            <input 
-              type="text"
-              placeholder="Buscar equipo o liga..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleRefreshReal}
+              disabled={isRefreshing}
               style={{
-                width: '100%',
-                backgroundColor: 'var(--color-background)',
-                border: '1px solid var(--color-surface-borders)',
-                borderRadius: 'var(--radius-md)',
-                padding: '8px 12px',
-                color: 'var(--color-text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 20px',
+                borderRadius: 'var(--radius-lg)',
+                backgroundColor: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                fontWeight: 700,
                 fontSize: '0.85rem',
-                outline: 'none',
+                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                opacity: isRefreshing ? 0.7 : 1,
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.2s ease',
               }}
-            />
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              {isRefreshing ? 'Analizando...' : 'Refrescar Análisis Real'}
+              <Zap size={14} style={{ color: '#FCD34D' }} />
+            </button>
+
+            <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
+              <input 
+                type="text"
+                placeholder="Buscar equipo o liga..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--color-background)',
+                  border: '1px solid var(--color-surface-borders)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '8px 12px',
+                  color: 'var(--color-text-primary)',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
