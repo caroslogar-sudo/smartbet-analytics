@@ -34,8 +34,8 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
   const { opportunities } = useLiveTop10();
 
   const LIVE_SPORTS_DATA = useMemo(() => {
-    // Agrupación por Fecha -> Deporte -> Liga
-    const dateGroups = new Map<string, Map<string, Map<string, any[]>>>();
+    // Agrupación por Fecha -> Deporte -> País -> Liga
+    const dateGroups = new Map<string, Map<string, Map<string, Map<string, any[]>>>>();
 
     opportunities.forEach(o => {
        const dateObj = new Date(o.commence_time);
@@ -45,7 +45,11 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
        const sportGroups = dateGroups.get(dateKey)!;
        
        if (!sportGroups.has(o.sport)) sportGroups.set(o.sport, new Map());
-       const leagueGroups = sportGroups.get(o.sport)!;
+       const countryGroups = sportGroups.get(o.sport)!;
+       
+       const countryKey = o.country || 'Internacional';
+       if (!countryGroups.has(countryKey)) countryGroups.set(countryKey, new Map());
+       const leagueGroups = countryGroups.get(countryKey)!;
        
        if (!leagueGroups.has(o.comp)) leagueGroups.set(o.comp, []);
        leagueGroups.get(o.comp)!.push(o);
@@ -54,7 +58,7 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
     return Array.from(dateGroups.entries()).map(([dateLabel, sports]) => {
       return {
         dateLabel,
-        sports: Array.from(sports.entries()).map(([sportName, leagues]) => {
+        sports: Array.from(sports.entries()).map(([sportName, countries]) => {
           let icon = '🎯';
           let accentColor = '#3B82F6';
           if (sportName.toLowerCase().includes('fútbol') || sportName.toLowerCase().includes('soccer')) { icon = '⚽'; accentColor = '#10B981'; }
@@ -65,47 +69,52 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
             sportName,
             icon,
             accentColor,
-            leagues: Array.from(leagues.entries()).map(([leagueName, leagueOpps]) => {
-               const matchGroups = new Map<string, any[]>();
-               leagueOpps.forEach(o => {
-                  const matchId = `${o.home} vs ${o.away}`;
-                  const group = matchGroups.get(matchId) || [];
-                  group.push(o);
-                  matchGroups.set(matchId, group);
-               });
+            countries: Array.from(countries.entries()).map(([countryName, leagues]) => {
+              return {
+                countryName,
+                leagues: Array.from(leagues.entries()).map(([leagueName, leagueOpps]) => {
+                  const matchGroups = new Map<string, any[]>();
+                  leagueOpps.forEach(o => {
+                      const matchId = `${o.home} vs ${o.away}`;
+                      const group = matchGroups.get(matchId) || [];
+                      group.push(o);
+                      matchGroups.set(matchId, group);
+                  });
 
-               const matches = Array.from(matchGroups.entries()).map(([matchId, matchOpps]) => {
-                  const first = matchOpps[0];
-                  const timeStr = first.commence_time ? new Date(first.commence_time).toLocaleTimeString('es-ES', {
-                     hour: '2-digit',
-                     minute: '2-digit'
-                  }) : '--:--';
+                  const matches = Array.from(matchGroups.entries()).map(([matchId, matchOpps]) => {
+                      const first = matchOpps[0];
+                      const timeStr = first.commence_time ? new Date(first.commence_time).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : '--:--';
 
-                  return {
-                     matchId,
-                     home: first.home,
-                     away: first.away,
-                     matchTime: timeStr,
-                     isLive: matchOpps.some(o => o.is_live),
-                     predictions: matchOpps.map(o => {
-                        const impliedP = o.odds > 1 ? Math.round((1 / o.odds) * 100 * 10) / 10 : 50;
-                        const reason = `Análisis basado en alineaciones reales confirmadas y histórico de enfrentamientos. Se ha contemplado la probabilidad de empate (${(100 - impliedP * 1.2).toFixed(1)}%) en el modelo de regresión. Confianza algorítmica del ${o.cc}% para "${o.prediction}".`;
+                      return {
+                        matchId,
+                        home: first.home,
+                        away: first.away,
+                        matchTime: timeStr,
+                        isLive: matchOpps.some(o => o.is_live),
+                        predictions: matchOpps.map(o => {
+                            const impliedP = o.odds > 1 ? Math.round((1 / o.odds) * 100 * 10) / 10 : 50;
+                            const reason = `Análisis basado en alineaciones reales confirmadas y histórico de enfrentamientos. Se ha contemplado la probabilidad de empate (${(100 - impliedP * 1.2).toFixed(1)}%) en el modelo de regresión. Confianza algorítmica del ${o.cc}% para "${o.prediction}".`;
 
-                        return {
-                           ...o,
-                           id: o.id,
-                           isLive: o.is_live,
-                           bestOdds: o.odds,
-                           bestBookmaker: o.bookmaker,
-                           bookmakerOdds: o.bookmaker_odds || [],
-                           market_category: o.market_category || inferMarketCategory(o.market),
-                           statisticalReason: o.statisticalReason || reason,
-                        };
-                     })
-                  };
-               });
+                            return {
+                              ...o,
+                              id: o.id,
+                              isLive: o.is_live,
+                              bestOdds: o.odds,
+                              bestBookmaker: o.bookmaker,
+                              bookmakerOdds: o.bookmaker_odds || [],
+                              market_category: o.market_category || inferMarketCategory(o.market),
+                              statisticalReason: o.statisticalReason || reason,
+                            };
+                        })
+                      };
+                  });
 
-               return { leagueName, matches };
+                  return { leagueName, matches };
+                })
+              };
             })
           };
         })
@@ -118,17 +127,21 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
     sports: day.sports.filter(s => !filterSport || s.sportName === filterSport)
       .map(sport => ({
         ...sport,
-        leagues: sport.leagues.map(league => ({
-          ...league,
-          matches: league.matches.filter(m => {
-            const matchesSearch = m.home.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 m.away.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 league.leagueName.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesLive = !filterLive || m.isLive;
-            return matchesSearch && matchesLive;
-          })
-        })).filter(l => l.matches.length > 0)
-      })).filter(s => s.leagues.length > 0)
+        countries: sport.countries.map(country => ({
+          ...country,
+          leagues: country.leagues.map(league => ({
+            ...league,
+            matches: league.matches.filter(m => {
+              const matchesSearch = m.home.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                   m.away.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                   league.leagueName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                   country.countryName.toLowerCase().includes(searchQuery.toLowerCase());
+              const matchesLive = !filterLive || m.isLive;
+              return matchesSearch && matchesLive;
+            })
+          })).filter(l => l.matches.length > 0)
+        })).filter(c => c.leagues.length > 0)
+      })).filter(s => s.countries.length > 0)
   })).filter(d => d.sports.length > 0);
 
   const uniqueSports = useMemo(() => {
@@ -212,27 +225,57 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{sport.sportName}</h3>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-                    {sport.leagues.map(league => (
-                      <div key={`${dayGroup.dateLabel}-${sport.sportName}-${league.leagueName}`}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', opacity: 0.8 }}>
-                          <div style={{ width: '12px', height: '2px', backgroundColor: sport.accentColor }}></div>
-                          {league.leagueName.toUpperCase()}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xxl)' }}>
+                    {sport.countries.map(country => (
+                      <div key={`${dayGroup.dateLabel}-${sport.sportName}-${country.countryName}`}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 'var(--space-md)', 
+                          marginBottom: 'var(--space-lg)',
+                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          borderLeft: `4px solid ${sport.accentColor}`
+                        }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                            {country.countryName.toUpperCase()}
+                          </span>
                         </div>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 'var(--space-lg)' }}>
-                          {league.matches.map(match => (
-                            <MatchCard 
-                              key={`${dayGroup.dateLabel}-${match.matchId}`}
-                              home={match.home}
-                              away={match.away}
-                              matchDate={match.matchTime}
-                              league={league.leagueName}
-                              sport={sport.sportName}
-                              predictions={match.predictions}
-                              accentColor={sport.accentColor}
-                              onAddToDashboard={onAddToDashboard}
-                            />
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)', paddingLeft: 'var(--space-md)' }}>
+                          {country.leagues.map(league => (
+                            <div key={`${dayGroup.dateLabel}-${sport.sportName}-${country.countryName}-${league.leagueName}`}>
+                              <div style={{ 
+                                fontSize: '0.85rem', 
+                                fontWeight: 700, 
+                                color: sport.accentColor, 
+                                marginBottom: 'var(--space-md)', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 'var(--space-sm)',
+                                opacity: 0.9 
+                              }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: sport.accentColor }}></div>
+                                {league.leagueName}
+                              </div>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 'var(--space-lg)' }}>
+                                {league.matches.map(match => (
+                                  <MatchCard 
+                                    key={`${dayGroup.dateLabel}-${match.matchId}`}
+                                    home={match.home}
+                                    away={match.away}
+                                    matchDate={match.matchTime}
+                                    league={league.leagueName}
+                                    sport={sport.sportName}
+                                    predictions={match.predictions}
+                                    accentColor={sport.accentColor}
+                                    onAddToDashboard={onAddToDashboard}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>

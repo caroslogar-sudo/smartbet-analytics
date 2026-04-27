@@ -113,10 +113,11 @@ def get_random_basket_market(home: str, away: str) -> tuple:
 
 class CC_Engine:
     def __init__(self):
-        self.current_state: list[Opportunity] = []
         self.cycle_count = 0
         self._is_real_data = False
         self._real_data_timestamp: str | None = None
+        # Inicializar con datos mock para que el frontend no esté vacío
+        self.current_state: list[Opportunity] = self._generate_opportunities(15)
 
     async def get_current_top10_from_cache(self) -> Top10Response:
         self.cycle_count += 1
@@ -219,24 +220,42 @@ class CC_Engine:
             now + timedelta(days=2)   # Pasado mañana
         ]
 
+        # Ligas de fútbol (Muestra de las VIP)
         soccer_leagues = [
-            ("LaLiga", "soccer_spain_la_liga"),
-            ("Premier League", "soccer_epl"),
-            ("Champions League", "soccer_uefa_champs_league")
+            ("LaLiga", "soccer_spain_la_liga", "España"),
+            ("Premier League", "soccer_epl", "Inglaterra"),
+            ("Champions League", "soccer_uefa_champs_league", "Europa"),
+            ("Serie A", "soccer_italy_serie_a", "Italia"),
+            ("Bundesliga", "soccer_germany_bundesliga", "Alemania")
+        ]
+        
+        tennis_leagues = [
+            ("Roland Garros", "tennis_atp_french_open", "Grand Slam"),
+            ("Wimbledon", "tennis_atp_wimbledon", "Grand Slam"),
+            ("ATP Masters 1000", "tennis_atp_masters_1000", "ATP")
         ]
 
         for i in range(count):
-            sport = "Fútbol" if i % 2 == 0 else "Baloncesto"
+            # Rotar entre Fútbol, Baloncesto y Tenis
+            r = i % 3
+            sport = "Fútbol" if r == 0 else ("Baloncesto" if r == 1 else "Tenis")
             dt = random.choice(dates)
+            country = "Internacional"
             
             if sport == "Fútbol":
-                league_name, league_key = random.choice(soccer_leagues)
-                home, away = ("Real Madrid", "FC Barcelona") if i == 0 else ("Manchester City", "Arsenal")
+                league_name, league_key, country = random.choice(soccer_leagues)
+                home, away = random.choice([("Real Madrid", "FC Barcelona"), ("Manchester City", "Arsenal"), ("Juventus", "Inter")])
                 market, cat, pred, odds_range = get_random_soccer_market(home, away)
-            else:
+            elif sport == "Baloncesto":
                 league_name, league_key = "NBA", "basketball_nba"
+                country = "USA"
                 home, away = "Lakers", "Warriors"
                 market, cat, pred, odds_range = get_random_basket_market(home, away)
+            else: # Tenis
+                league_name, league_key, country = random.choice(tennis_leagues)
+                home, away = random.choice([("Carlos Alcaraz", "Jannik Sinner"), ("Novak Djokovic", "Rafa Nadal"), ("Medvedev", "Zverev")])
+                # Usamos mercados de basket adaptados o simples para tenis en mock
+                market, cat, pred, odds_range = ("Ganador Partido", "ganador", f"Gana {home}", (1.40, 2.50))
 
             is_live = dt <= now and (now - dt).total_seconds() < 10800
 
@@ -246,6 +265,7 @@ class CC_Engine:
                 away=away,
                 sport=sport,
                 comp=league_name,
+                country=country,
                 market=market,
                 prediction=pred,
                 odds=round(random.uniform(*odds_range), 2),

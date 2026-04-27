@@ -13,6 +13,7 @@ class Opportunity(BaseModel):
     home: str
     away: str
     comp: str
+    country: str = "Internacional"
     sport: str
     # Tipo de mercado semántico (enum-like string: "Ganador", "Total Goles", "Corners Total", etc.)
     market: str

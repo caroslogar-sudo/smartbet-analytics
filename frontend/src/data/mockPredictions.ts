@@ -370,9 +370,20 @@ export const ALL_SPORTS_DATA: SportData[] = [
       { leagueName: 'Conference League', matches: groupByMatch(conferencePredictions) },
       { leagueName: 'La Liga', matches: groupByMatch(laLigaPredictions) },
       { leagueName: 'Premier League', matches: groupByMatch(premierPredictions) },
+      { leagueName: 'Serie A', matches: groupByMatch(ligue1Predictions) }, // Reutilizamos similar structure
       { leagueName: 'Ligue 1', matches: groupByMatch(ligue1Predictions) },
       { leagueName: 'Bundesliga', matches: groupByMatch(bundesligaPredictions) },
       { leagueName: 'Primeira Liga', matches: groupByMatch(primeiraPredictions) },
+    ]
+  },
+  {
+    sportName: 'Tenis',
+    icon: '🎾',
+    accentColor: '#A3E635',
+    leagues: [
+      { leagueName: 'Roland Garros', matches: groupByMatch(championsLeaguePredictions.slice(0, 2)) },
+      { leagueName: 'Wimbledon', matches: groupByMatch(championsLeaguePredictions.slice(2, 4)) },
+      { leagueName: 'ATP Masters 1000', matches: groupByMatch(championsLeaguePredictions.slice(4, 6)) },
     ]
   },
   {

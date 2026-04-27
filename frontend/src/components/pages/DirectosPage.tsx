@@ -101,22 +101,33 @@ export const DirectosPage: React.FC = () => {
                     {league}
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-md)' }}>
-                    {matches.map(match => (
-                      <Card key={match.id} style={{ borderLeft: '4px solid var(--color-danger)', padding: 'var(--space-md)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
-                          <div style={{ animation: 'pulse 2s infinite' }}>
-                            <Badge variant="danger" text="LIVE" />
+                    {matches.map(match => {
+                      const isTennis = match.sport?.toLowerCase().includes('tenis');
+                      const isBasket = match.sport?.toLowerCase().includes('baloncesto');
+                      const sportColor = isTennis ? '#A3E635' : isBasket ? '#F97316' : 'var(--color-danger)';
+                      
+                      return (
+                        <Card key={match.id} style={{ borderLeft: `4px solid ${sportColor}`, padding: 'var(--space-md)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ animation: 'pulse 2s infinite' }}>
+                                <Badge variant="danger" text="LIVE" />
+                              </div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                                {isTennis ? '🎾' : isBasket ? '🏀' : '⚽'} {match.sport}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-md) 0' }}>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'right' }}>{match.home}</div>
-                          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)', margin: '0 var(--space-lg)' }}>
-                            {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 'var(--space-md) 0' }}>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'right' }}>{match.home}</div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)', margin: '0 var(--space-lg)' }}>
+                              {match.scores?.find((s: any) => s.name === match.home)?.score || 0} - {match.scores?.find((s: any) => s.name === match.away)?.score || 0}
+                            </div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'left' }}>{match.away}</div>
                           </div>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'left' }}>{match.away}</div>
-                        </div>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               ))

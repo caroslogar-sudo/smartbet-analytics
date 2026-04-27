@@ -69,18 +69,26 @@ class SportScoreService:
                         eid = event["id"]
                         home = event["home_team"]["name"]
                         away = event["away_team"]["name"]
-                        league = event.get("league", {}).get("name", "Liga")
+                        league_obj = event.get("league", {})
+                        league_name = league_obj.get("name", "Liga")
+                        country_name = league_obj.get("category", {}).get("name", "Internacional")
+                        
+                        # FILTRO VIP: Solo procesar ligas que coincidan con nuestra lista de interés (Nombre + País)
+                        vip_matches = [(l[2].lower(), l[3].lower()) for l in SUPPORTED_LEAGUES]
+                        if (league_name.lower(), country_name.lower()) not in vip_matches:
+                            continue
+
                         commence_time = event.get("start_at")
 
                         # 1. Ganador (Real)
                         opp_h2h = SportScoreService._create_h2h_from_main_odds(
-                            main_odds, eid, home, away, current_sport, league, commence_time
+                            main_odds, eid, home, away, current_sport, league_name, country_name, commence_time
                         )
                         if opp_h2h: all_opps.append(opp_h2h)
 
                         # 2. Doble Oportunidad (Derivada de Real para Fútbol)
                         opp_dc = SportScoreService._create_dc_from_main_odds(
-                            main_odds, eid, home, away, current_sport, league, commence_time
+                            main_odds, eid, home, away, current_sport, league_name, country_name, commence_time
                         )
                         if opp_dc: all_opps.append(opp_dc)
 
@@ -90,7 +98,7 @@ class SportScoreService:
         return all_opps
 
     @staticmethod
-    def _create_h2h_from_main_odds(main_odds, eid, home, away, sport, league, start_time) -> Optional[Opportunity]:
+    def _create_h2h_from_main_odds(main_odds, eid, home, away, sport, league, country, start_time) -> Optional[Opportunity]:
         outcomes = []
         if main_odds.get("outcome_1"): outcomes.append({"name": home, "val": main_odds["outcome_1"]["value"]})
         if main_odds.get("outcome_X"): outcomes.append({"name": "Empate", "val": main_odds["outcome_X"]["value"]})
@@ -103,14 +111,14 @@ class SportScoreService:
         cc, kelly = SportsDataService._calculate_cc_and_kelly(odds, odds - 0.04)
         
         return Opportunity(
-            id=f"ss_{eid}_h2h", home=home, away=away, comp=league, sport=sport,
+            id=f"ss_{eid}_h2h", home=home, away=away, comp=league, country=country, sport=sport,
             market="Ganador Partido", market_category="ganador", prediction=f"Gana {fav['name']}" if fav['name'] != "Empate" else "Empate",
             cc=cc, odds=odds, bookmaker="SportScore", is_live=False, kelly_fraction=kelly,
             commence_time=start_time, bookmaker_odds=[BookmakerOdds(bookmaker="SportScore", odds=odds)]
         )
 
     @staticmethod
-    def _create_dc_from_main_odds(main_odds, eid, home, away, sport, league, start_time) -> Optional[Opportunity]:
+    def _create_dc_from_main_odds(main_odds, eid, home, away, sport, league, country, start_time) -> Optional[Opportunity]:
         if sport != "Fútbol": return None
         o1 = main_odds.get("outcome_1", {}).get("value")
         ox = main_odds.get("outcome_X", {}).get("value")
@@ -121,29 +129,40 @@ class SportScoreService:
         cc, kelly = SportsDataService._calculate_cc_and_kelly(dc_odds, dc_odds - 0.02)
         
         return Opportunity(
-            id=f"ss_{eid}_dc", home=home, away=away, comp=league, sport=sport,
+            id=f"ss_{eid}_dc", home=home, away=away, comp=league, country=country, sport=sport,
             market="Ganar o Empatar", market_category="ganador", prediction=f"{home} o Empate",
             cc=cc, odds=dc_odds, bookmaker="SportScore", is_live=False, kelly_fraction=kelly,
             commence_time=start_time, bookmaker_odds=[BookmakerOdds(bookmaker="SportScore", odds=dc_odds)]
         )
 
-# 11 Ligas de fútbol + 2 de baloncesto
-SUPPORTED_LEAGUES: List[Tuple[str, str, str]] = [
-    ("soccer_spain_la_liga",                      "Fútbol", "LaLiga"),
-    ("soccer_epl",                                "Fútbol", "Premier League"),
-    ("soccer_germany_bundesliga",                 "Fútbol", "Bundesliga"),
-    ("soccer_france_ligue_one",                   "Fútbol", "Ligue 1"),
-    ("soccer_italy_serie_a",                      "Fútbol", "Serie A"),
-    ("soccer_portugal_primeira_liga",             "Fútbol", "Primeira Liga"),
-    ("soccer_belgium_first_div",                  "Fútbol", "Pro League Belga"),
-    ("soccer_netherlands_eredivisie",             "Fútbol", "Eredivisie"),
-    ("soccer_uefa_champs_league",                 "Fútbol", "Champions League"),
-    ("soccer_uefa_europa_league",                 "Fútbol", "Europa League"),
-    ("soccer_uefa_europa_conference_league",      "Fútbol", "Conference League"),
-    ("soccer_fifa_world_cup",                 "Fútbol", "Mundial"),
-    ("soccer_uefa_euro_championship",         "Fútbol", "Eurocopa"),
-    ("basketball_nba",                            "Baloncesto", "NBA"),
-    ("basketball_euroleague",                     "Baloncesto", "Euroliga"),
+# LISTA VIP DEFINITIVA (Óscar López)
+SUPPORTED_LEAGUES: List[Tuple[str, str, str, str]] = [
+    # Fútbol
+    ("soccer_spain_la_liga",                      "Fútbol", "LaLiga", "España"),
+    ("soccer_spain_segunda_division",             "Fútbol", "LaLiga 2", "España"),
+    ("soccer_epl",                                "Fútbol", "Premier League", "Inglaterra"),
+    ("soccer_germany_bundesliga",                 "Fútbol", "Bundesliga", "Alemania"),
+    ("soccer_france_ligue_one",                   "Fútbol", "Ligue 1", "Francia"),
+    ("soccer_italy_serie_a",                      "Fútbol", "Serie A", "Italia"),
+    ("soccer_portugal_primeira_liga",             "Fútbol", "Primeira Liga", "Portugal"),
+    ("soccer_belgium_first_div",                  "Fútbol", "Pro League", "Bélgica"),
+    ("soccer_netherlands_eredivisie",             "Fútbol", "Eredivisie", "Países Bajos"),
+    ("soccer_uefa_champs_league",                 "Fútbol", "Champions League", "Europa"),
+    ("soccer_uefa_europa_league",                 "Fútbol", "Europa League", "Europa"),
+    ("soccer_fifa_world_cup",                     "Fútbol", "Mundial", "Internacional"),
+    ("soccer_uefa_euro_championship",             "Fútbol", "Eurocopa", "Internacional"),
+    ("soccer_conmebol_copa_america",              "Fútbol", "Copa América", "Internacional"),
+    
+    # Baloncesto
+    ("basketball_nba",                            "Baloncesto", "NBA", "USA"),
+    ("basketball_spain_acb",                      "Baloncesto", "Liga Endesa", "España"),
+    
+    # Tenis (Grand Slams & Masters 1000)
+    ("tennis_atp_australian_open",                "Tenis", "Australian Open", "Grand Slam"),
+    ("tennis_atp_french_open",                    "Tenis", "Roland Garros", "Grand Slam"),
+    ("tennis_atp_wimbledon",                      "Tenis", "Wimbledon", "Grand Slam"),
+    ("tennis_atp_us_open",                        "Tenis", "US Open", "Grand Slam"),
+    ("tennis_atp_masters_1000",                   "Tenis", "ATP Masters 1000", "ATP"),
 ]
 
 MARKETS_TO_QUERY = "h2h,totals,double_chance"
@@ -184,10 +203,10 @@ class SportsDataService:
         # 1. Intentar con The Odds API (si hay llave)
         if ODDS_API_KEY:
             async with httpx.AsyncClient() as client:
-                for league_key, sport_name, league_name in SUPPORTED_LEAGUES:
+                for league_key, sport_name, league_name, country_name in SUPPORTED_LEAGUES:
                     try:
                         league_opps = await SportsDataService._fetch_league(
-                            client, league_key, sport_name, league_name
+                            client, league_key, sport_name, league_name, country_name
                         )
                         all_opportunities.extend(league_opps)
                     except Exception as e:
@@ -212,7 +231,7 @@ class SportsDataService:
 
         all_scores = []
         async with httpx.AsyncClient() as client:
-            for league_key, _, _ in SUPPORTED_LEAGUES:
+            for league_key, _, _, _ in SUPPORTED_LEAGUES:
                 url = f"{ODDS_API_BASE}/{league_key}/scores/"
                 params = {"apiKey": ODDS_API_KEY, "daysFrom": 1}
                 try:
@@ -229,6 +248,7 @@ class SportsDataService:
         league_key: str,
         sport_name: str,
         league_name: str,
+        country_name: str,
     ) -> List[Opportunity]:
         # Mercados dinámicos por deporte
         markets = "h2h,totals"
@@ -285,21 +305,21 @@ class SportsDataService:
             away = event.get("away_team", "Visitante")
             
             # Ganador / Doble Oportunidad
-            h2h = SportsDataService._build_h2h_opp(event, bookmakers, home, away, sport_name, league_name, is_live)
+            h2h = SportsDataService._build_h2h_opp(event, bookmakers, home, away, sport_name, league_name, country_name, is_live)
             if h2h: opportunities.append(h2h)
 
             # Totales (Goles)
-            totals = SportsDataService._build_totals_opp(event, bookmakers, home, away, sport_name, league_name, is_live)
+            totals = SportsDataService._build_totals_opp(event, bookmakers, home, away, sport_name, league_name, country_name, is_live)
             if totals: opportunities.append(totals)
 
             # Resultado al Descanso
-            half_time = SportsDataService._build_halftime_opp(event, bookmakers, home, away, sport_name, league_name, is_live)
+            half_time = SportsDataService._build_halftime_opp(event, bookmakers, home, away, sport_name, league_name, country_name, is_live)
             if half_time: opportunities.append(half_time)
 
         return opportunities
 
     @staticmethod
-    def _build_halftime_opp(event, bookmakers, home, away, sport_name, league_name, is_live) -> Optional[Opportunity]:
+    def _build_halftime_opp(event, bookmakers, home, away, sport_name, league_name, country_name, is_live) -> Optional[Opportunity]:
         # Implementación simple para capturar mercados de descanso
         best_odds, best_bk, bk_list = 0.0, "", []
         for bk in bookmakers:
@@ -321,14 +341,14 @@ class SportsDataService:
         cc, kelly = SportsDataService._calculate_cc_and_kelly(best_odds, best_odds - 0.05)
         
         return Opportunity(
-            id=f"{event['id'][:7]}_ht", home=home, away=away, comp=league_name, sport=sport_name,
+            id=f"{event['id'][:7]}_ht", home=home, away=away, comp=league_name, country=country_name, sport=sport_name,
             market="Resultado al Descanso", market_category="parcial", prediction=prediction_label,
             cc=cc, odds=best_odds, bookmaker=best_bk, is_live=is_live, kelly_fraction=kelly,
             commence_time=event.get("commence_time"), bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True)
         )
 
     @staticmethod
-    def _build_h2h_opp(event, bookmakers, home, away, sport_name, league_name, is_live) -> Optional[Opportunity]:
+    def _build_h2h_opp(event, bookmakers, home, away, sport_name, league_name, country_name, is_live) -> Optional[Opportunity]:
         best_odds, best_bk, bk_list = 0.0, "", []
         favorite_name = ""
         market_key = "h2h"
@@ -364,14 +384,14 @@ class SportsDataService:
         cc, kelly = SportsDataService._calculate_cc_and_kelly(best_odds, best_odds - 0.05)
         
         return Opportunity(
-            id=f"{event['id'][:7]}_h", home=home, away=away, comp=league_name, sport=sport_name,
+            id=f"{event['id'][:7]}_h", home=home, away=away, comp=league_name, country=country_name, sport=sport_name,
             market=market_label, market_category="ganador", prediction=prediction_label,
             cc=cc, odds=best_odds, bookmaker=best_bk, is_live=is_live, kelly_fraction=kelly,
             commence_time=event.get("commence_time"), bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True)
         )
 
     @staticmethod
-    def _build_totals_opp(event, bookmakers, home, away, sport_name, league_name, is_live) -> Optional[Opportunity]:
+    def _build_totals_opp(event, bookmakers, home, away, sport_name, league_name, country_name, is_live) -> Optional[Opportunity]:
         # Implementation similar to h2h, finding the most common line
         line_data = {}
         for bk in bookmakers:
@@ -396,7 +416,7 @@ class SportsDataService:
         
         cc, kelly = SportsDataService._calculate_cc_and_kelly(best_odds, sum(best_data["odds"])/len(best_data["odds"]))
         return Opportunity(
-            id=f"{event['id'][:7]}_t", home=home, away=away, comp=league_name, sport=sport_name,
+            id=f"{event['id'][:7]}_t", home=home, away=away, comp=league_name, country=country_name, sport=sport_name,
             market="Total Goles" if sport_name == "Fútbol" else "Total Puntos", market_category="goles", prediction=f"{best_key}",
             cc=cc, odds=best_odds, bookmaker=best_bk, is_live=is_live, kelly_fraction=kelly,
             commence_time=event.get("commence_time"), bookmaker_odds=sorted(bk_list, key=lambda x: x.odds, reverse=True)
