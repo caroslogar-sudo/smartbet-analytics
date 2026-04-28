@@ -1,45 +1,58 @@
 import os
 import json
+import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 class FirebaseWrapper:
     """
     Agnostic Firebase/Firestore Wrapper for SmartBet Analytics.
-    Following the 'Dependency Agnosticism' principle.
     """
     _db = None
 
     @classmethod
     def initialize(cls):
         if not firebase_admin._apps:
-            # Look for creds in env JSON, then env path, then local file
+            # Buscar credenciales en Base64 primero (más seguro para Render)
+            cred_b64 = os.getenv("FIREBASE_CREDENTIALS_BASE64")
             cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
             cred_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "serviceAccountKey.json")
             
-            if cred_json:
+            if cred_b64:
+                try:
+                    decoded = base64.b64decode(cred_b64).decode('utf-8')
+                    cred_dict = json.loads(decoded)
+                    cred = credentials.Certificate(cred_dict)
+                    firebase_admin.initialize_app(cred)
+                    print("✅ Firebase inicializado desde Base64")
+                except Exception as e:
+                    print(f"❌ Error parsing FIREBASE_CREDENTIALS_BASE64: {e}")
+            elif cred_json:
                 try:
                     cred_dict = json.loads(cred_json)
                     cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
+                    print("✅ Firebase inicializado desde JSON")
                 except Exception as e:
-                    print(f"Error parsing FIREBASE_CREDENTIALS_JSON: {e}")
+                    print(f"❌ Error parsing FIREBASE_CREDENTIALS_JSON: {e}")
             elif os.path.exists(cred_path):
                 cred = credentials.Certificate(cred_path)
                 firebase_admin.initialize_app(cred)
+                print("✅ Firebase inicializado desde archivo")
             else:
-                # Fallback to default or environment-based auth (useful for cloud deploys)
                 try:
                     firebase_admin.initialize_app()
+                    print("✅ Firebase inicializado con credenciales por defecto")
                 except Exception as e:
-                    print(f"Warning: Firebase could not be initialized: {e}")
+                    print(f"⚠️ Warning: Firebase could not be initialized: {e}")
                     return
 
         try:
             cls._db = firestore.client()
+            print("✅ Firestore client inicializado")
         except Exception as e:
-            print(f"Warning: Could not initialize Firestore client: {e}")
+            print(f"⚠️ Warning: Could not initialize Firestore client: {e}")
             cls._db = None
 
     @classmethod
@@ -50,14 +63,9 @@ class FirebaseWrapper:
 
     @classmethod
     def set_top_10(cls, opportunities: List[Dict[str, Any]], is_fallback: bool = False):
-        """
-        Sobreescribe el documento realtime/top10 de forma atómica.
-        Incluye el flag is_fallback para que el frontend distinga datos reales de emergencia.
-        """
         db = cls.get_db()
         if not db: return
 
-        # Estrategia: Un único documento con la lista, garantizando consistencia total del Top10
         top_10_ref = db.collection("realtime").document("top10")
         top_10_ref.set({
             "opportunities": opportunities,
@@ -67,7 +75,6 @@ class FirebaseWrapper:
 
     @classmethod
     def set_live_data(cls, live_matches: List[Dict], finished_matches: List[Dict]):
-        """Persiste los datos reales de directos y resultados en Firestore."""
         db = cls.get_db()
         if not db: return
 
@@ -98,15 +105,12 @@ class FirebaseWrapper:
 
     @classmethod
     def delete_old_opportunities(cls, hours_threshold: int = 48):
-        """Elimina oportunidades cuyo commence_time sea más antiguo que el umbral especificado."""
         db = cls.get_db()
         if not db: return
 
         from datetime import datetime, timedelta, timezone
         threshold_dt = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
         
-        # Obtenemos las oportunidades antiguas
-        # Nota: Usamos una consulta simple por commence_time
         docs = db.collection("opportunities").where("commence_time", "<", threshold_dt.isoformat()).stream()
         
         count = 0
@@ -114,7 +118,7 @@ class FirebaseWrapper:
         for doc in docs:
             batch.delete(doc.reference)
             count += 1
-            if count >= 400: # Límite de batch en Firestore
+            if count >= 400:
                 batch.commit()
                 batch = db.batch()
                 count = 0
