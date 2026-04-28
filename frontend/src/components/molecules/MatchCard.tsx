@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Prediction, MarketCategory } from '../../data/mockPredictions';
-import { MapPin, Clock, BarChart2, Info, ChevronDown, ChevronUp, PlusCircle } from 'lucide-react';
+import { Clock, BarChart2, Info, ChevronDown, ChevronUp, PlusCircle } from 'lucide-react'; // FIXED: Removed MapPin
 import type { BetFormData } from './BetRegistrationModal';
 
 interface MatchCardProps {
