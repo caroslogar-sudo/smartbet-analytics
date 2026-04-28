@@ -490,7 +490,7 @@ export const HomePage: React.FC = () => {
               Selecciones exclusivas con fiabilidad superior al <strong style={{ color: '#fbbf24' }}>75%</strong> detectadas por el algoritmo.
             </p>
           </div>
-          <Badge text="MÁXIMA FIABILIDAD" variant="warning" />
+          <Badge text="MÁXIMA FIABILIDAD" variant="info" />
         </div>
 
         <div style={{

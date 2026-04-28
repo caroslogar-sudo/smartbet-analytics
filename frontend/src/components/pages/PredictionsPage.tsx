@@ -32,7 +32,7 @@ const inferMarketCategory = (m: string): MarketCategory => {
 };
 
 export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboard }) => {
-  const [filterLive, setFilterLive] = React.useState(false);
+  // const [filterLive, setFilterLive] = React.useState(false); // FIXED: Removed unused state
   const [filterSport, setFilterSport] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -51,7 +51,7 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
       
       if (response.error) {
         showNotification({
-          type: 'error',
+          type: 'warning', // FIXED: Changed from 'error' to 'warning'
           title: 'Error de Actualización',
           message: 'No se pudo conectar con el engine para el análisis real.',
         });
@@ -74,7 +74,8 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
     const dateGroups = new Map<string, Map<string, Map<string, Map<string, any[]>>>>();
 
     opportunities.forEach(o => {
-       const dateObj = new Date(o.commence_time);
+       // FIXED: Validate commence_time is defined before creating Date
+       const dateObj = o.commence_time ? new Date(o.commence_time) : new Date();
        const dateKey = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
        
        if (!dateGroups.has(dateKey)) dateGroups.set(dateKey, new Map());
@@ -83,7 +84,7 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
        if (!sportGroups.has(o.sport)) sportGroups.set(o.sport, new Map());
        const countryGroups = sportGroups.get(o.sport)!;
        
-       const countryKey = o.country || 'Internacional';
+       const countryKey = (o as any).country || 'Internacional'; // FIXED: Handle country as optional property
        if (!countryGroups.has(countryKey)) countryGroups.set(countryKey, new Map());
        const leagueGroups = countryGroups.get(countryKey)!;
        
@@ -172,8 +173,8 @@ export const PredictionsPage: React.FC<PredictionsPageProps> = ({ onAddToDashboa
                                    m.away.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                    league.leagueName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                    country.countryName.toLowerCase().includes(searchQuery.toLowerCase());
-              const matchesLive = !filterLive || m.isLive;
-              return matchesSearch && matchesLive;
+              // FIXED: Removed filterLive reference since it's commented out
+              return matchesSearch;
             })
           })).filter(l => l.matches.length > 0)
         })).filter(c => c.leagues.length > 0)
