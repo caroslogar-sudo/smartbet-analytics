@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Intervalo de "heartbeat" interno: solo mantiene el estado en Firestore sin llamar a la API.
 # En producción con créditos disponibles, cambiar a 3600 (1 hora) o 43200 (12 horas).
-HEARTBEAT_INTERVAL_SECONDS = 3600  # 1 hora: solo persiste el estado actual
+HEARTBEAT_INTERVAL_SECONDS = 7200  # 2 hora: solo persiste el estado actual
 
 
 async def run_engine_cycle_loop() -> None:
