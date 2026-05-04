@@ -111,12 +111,19 @@ async def refresh_manual(user=Depends(get_current_user)):
     - Recomendado: máximo 2 veces al día
     """
     response = await engine.get_current_top10_real()
-    real_count = sum(1 for o in response.opportunities if o.bookmaker not in ["Bet365", "Bwin", "Betfair", "Sportium", "Pinnacle"])
     quota = SportsDataService.quota_status()
+    
+    real_count = sum(1 for o in response.opportunities if "mock" not in o.id)
+    
+    message = "Predicciones reales actualizadas correctamente"
+    if quota["remaining"] <= 0:
+        message = "⚠️ Clave principal agotada. Se ha activado el sistema de rotación/apoyo (SportScore) para mantener datos reales."
+    elif quota["remaining"] < 100:
+        message = f"Datos reales actualizados. Quedan {quota['remaining']} créditos en la clave actual."
 
     return {
         "success": True,
-        "message": "Predicciones reales actualizadas correctamente",
+        "message": message,
         "real_predictions": real_count,
         "total_predictions": len(response.opportunities),
         "api_credits_remaining": quota["remaining"],

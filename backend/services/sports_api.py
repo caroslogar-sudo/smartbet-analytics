@@ -17,27 +17,41 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-ODDS_API_KEY = os.getenv("THE_ODDS_API_KEY", "")
+# Gestión de Claves Multicapa (The Odds API + RapidAPI)
+def get_env_keys(base_name: str) -> List[str]:
+    """Obtiene una lista de claves desde variables de entorno (soporta comas o sufijos _1, _2)."""
+    val = os.getenv(base_name, "")
+    keys = [k.strip() for k in val.split(",") if k.strip()]
+    i = 1
+    while True:
+        k = os.getenv(f"{base_name}_{i}")
+        if not k: break
+        if k not in keys: keys.append(k)
+        i += 1
+    return keys
+
+ODDS_API_KEYS = get_env_keys("THE_ODDS_API_KEY")
 ODDS_API_BASE = "https://api.the-odds-api.com/v4/sports"
 
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
+RAPIDAPI_KEYS = get_env_keys("RAPIDAPI_KEY")
 SPORTSCORE_HOST = "sportscore1.p.rapidapi.com"
 
 class SportScoreService:
     @staticmethod
     async def fetch_opportunities() -> List[Opportunity]:
-        if not RAPIDAPI_KEY:
+        if not RAPIDAPI_KEYS:
             return []
 
         all_opps: List[Opportunity] = []
+        # Usamos la primera llave disponible
+        key = RAPIDAPI_KEYS[0]
         headers = {
-            "x-rapidapi-key": RAPIDAPI_KEY,
+            "x-rapidapi-key": key,
             "x-rapidapi-host": SPORTSCORE_HOST
         }
         
         async with httpx.AsyncClient() as client:
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            # 3 llamadas: fútbol (1), tenis (2) y baloncesto (3)
             sports = [(1, "Fútbol"), (2, "Tenis"), (3, "Baloncesto")]
             
             for sport_id, sport_name in sports:
@@ -47,21 +61,12 @@ class SportScoreService:
                     if resp.status_code != 200: continue
                     
                     events = resp.json().get("data", [])
+                    logger.info(f"SportScore {sport_name}: {len(events)} eventos encontrados.")
                     
                     for event in events:
                         e_sport_id = event.get("sport_id")
-                        if e_sport_id == 1:
-                            current_sport = "Fútbol"
-                        elif e_sport_id == 2:
-                            current_sport = "Tenis"
-                        elif e_sport_id == 3:
-                            current_sport = "Baloncesto"
-                        else:
-                            continue 
-                            
-                        # Deportes permitidos
-                        if current_sport not in ["Fútbol", "Baloncesto", "Tenis"]:
-                            continue
+                        current_sport = {1: "Fútbol", 2: "Tenis", 3: "Baloncesto"}.get(e_sport_id)
+                        if not current_sport: continue
                             
                         main_odds = event.get("main_odds")
                         if not main_odds: continue
@@ -73,20 +78,25 @@ class SportScoreService:
                         league_name = league_obj.get("name", "Liga")
                         country_name = league_obj.get("category", {}).get("name", "Internacional")
                         
-                        # FILTRO VIP: Solo procesar ligas que coincidan con nuestra lista de interés (Nombre + País)
-                        vip_matches = [(l[2].lower(), l[3].lower()) for l in SUPPORTED_LEAGUES]
-                        if (league_name.lower(), country_name.lower()) not in vip_matches:
-                            continue
+                        # Flexibilidad en nombres de ligas VIP
+                        is_vip = False
+                        for _, _, v_league, v_country in SUPPORTED_LEAGUES:
+                            # Coincidencia parcial o exacta de liga
+                            if v_league.lower() in league_name.lower() or league_name.lower() in v_league.lower():
+                                # Si el país coincide o es desconocido en SportScore, lo aceptamos
+                                if v_country.lower() in country_name.lower() or country_name.lower() == "unknown" or country_name.lower() == "internacional":
+                                    is_vip = True
+                                    break
+                        
+                        # Si no es VIP, limitamos el ruido pero permitimos algunos si hay pocos datos
+                        if not is_vip and len(all_opps) > 30: continue
 
                         commence_time = event.get("start_at")
-
-                        # 1. Ganador (Real)
                         opp_h2h = SportScoreService._create_h2h_from_main_odds(
                             main_odds, eid, home, away, current_sport, league_name, country_name, commence_time
                         )
                         if opp_h2h: all_opps.append(opp_h2h)
 
-                        # 2. Doble Oportunidad (Derivada de Real para Fútbol)
                         opp_dc = SportScoreService._create_dc_from_main_odds(
                             main_odds, eid, home, away, current_sport, league_name, country_name, commence_time
                         )
@@ -94,18 +104,49 @@ class SportScoreService:
 
                 except Exception as e:
                     logger.error(f"Error en SportScore {sport_name}: {e}")
-                    
         return all_opps
+
+    @staticmethod
+    async def fetch_live_scores() -> List[dict]:
+        """Obtiene marcadores en vivo desde SportScore como apoyo."""
+        if not RAPIDAPI_KEYS: return []
+        
+        key = RAPIDAPI_KEYS[0]
+        headers = {"x-rapidapi-key": key, "x-rapidapi-host": SPORTSCORE_HOST}
+        all_scores = []
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                # SportScore tiene un endpoint específico para eventos en vivo
+                url = f"https://{SPORTSCORE_HOST}/events/live"
+                resp = await client.get(url, headers=headers, timeout=10.0)
+                if resp.status_code == 200:
+                    data = resp.json().get("data", [])
+                    for ev in data:
+                        # Mapear al formato que espera el engine (similar a The Odds API scores)
+                        all_scores.append({
+                            "id": f"ss_{ev['id']}",
+                            "home_team": ev["home_team"]["name"],
+                            "away_team": ev["away_team"]["name"],
+                            "scores": [
+                                {"name": ev["home_team"]["name"], "score": str(ev.get("home_score", {}).get("current", 0))},
+                                {"name": ev["away_team"]["name"], "score": str(ev.get("away_score", {}).get("current", 0))}
+                            ],
+                            "completed": ev.get("status") == "finished",
+                            "last_update": ev.get("start_at")
+                        })
+            except Exception as e:
+                logger.warning(f"Error SportScore Live Scores: {e}")
+        return all_scores
 
     @staticmethod
     def _create_h2h_from_main_odds(main_odds, eid, home, away, sport, league, country, start_time) -> Optional[Opportunity]:
         outcomes = []
-        if main_odds.get("outcome_1"): outcomes.append({"name": home, "val": main_odds["outcome_1"]["value"]})
-        if main_odds.get("outcome_X"): outcomes.append({"name": "Empate", "val": main_odds["outcome_X"]["value"]})
-        if main_odds.get("outcome_2"): outcomes.append({"name": away, "val": main_odds["outcome_2"]["value"]})
+        if main_odds.get("outcome_1") and main_odds["outcome_1"].get("value"): outcomes.append({"name": home, "val": main_odds["outcome_1"]["value"]})
+        if main_odds.get("outcome_X") and main_odds["outcome_X"].get("value"): outcomes.append({"name": "Empate", "val": main_odds["outcome_X"]["value"]})
+        if main_odds.get("outcome_2") and main_odds["outcome_2"].get("value"): outcomes.append({"name": away, "val": main_odds["outcome_2"]["value"]})
         
         if not outcomes: return None
-        
         fav = min(outcomes, key=lambda o: o["val"])
         odds = float(fav["val"])
         cc, kelly = SportsDataService._calculate_cc_and_kelly(odds, odds - 0.04)
@@ -137,35 +178,24 @@ class SportScoreService:
 
 # LISTA VIP DEFINITIVA (Óscar López)
 SUPPORTED_LEAGUES: List[Tuple[str, str, str, str]] = [
-    # Fútbol
-    ("soccer_spain_la_liga",                      "Fútbol", "LaLiga", "España"),
-    ("soccer_spain_segunda_division",             "Fútbol", "LaLiga 2", "España"),
-    ("soccer_epl",                                "Fútbol", "Premier League", "Inglaterra"),
-    ("soccer_germany_bundesliga",                 "Fútbol", "Bundesliga", "Alemania"),
-    ("soccer_france_ligue_one",                   "Fútbol", "Ligue 1", "Francia"),
-    ("soccer_italy_serie_a",                      "Fútbol", "Serie A", "Italia"),
-    ("soccer_portugal_primeira_liga",             "Fútbol", "Primeira Liga", "Portugal"),
-    ("soccer_belgium_first_div",                  "Fútbol", "Pro League", "Bélgica"),
-    ("soccer_netherlands_eredivisie",             "Fútbol", "Eredivisie", "Países Bajos"),
-    ("soccer_uefa_champs_league",                 "Fútbol", "Champions League", "Europa"),
-    ("soccer_uefa_europa_league",                 "Fútbol", "Europa League", "Europa"),
-    ("soccer_fifa_world_cup",                     "Fútbol", "Mundial", "Internacional"),
-    ("soccer_uefa_euro_championship",             "Fútbol", "Eurocopa", "Internacional"),
-    ("soccer_conmebol_copa_america",              "Fútbol", "Copa América", "Internacional"),
-    
-    # Baloncesto
-    ("basketball_nba",                            "Baloncesto", "NBA", "USA"),
-    ("basketball_spain_acb",                      "Baloncesto", "Liga Endesa", "España"),
-    
-    # Tenis (Grand Slams & Masters 1000)
-    ("tennis_atp_australian_open",                "Tenis", "Australian Open", "Grand Slam"),
-    ("tennis_atp_french_open",                    "Tenis", "Roland Garros", "Grand Slam"),
-    ("tennis_atp_wimbledon",                      "Tenis", "Wimbledon", "Grand Slam"),
-    ("tennis_atp_us_open",                        "Tenis", "US Open", "Grand Slam"),
-    ("tennis_atp_masters_1000",                   "Tenis", "ATP Masters 1000", "ATP"),
+    ("soccer_spain_la_liga", "Fútbol", "LaLiga", "España"),
+    ("soccer_spain_segunda_division", "Fútbol", "LaLiga 2", "España"),
+    ("soccer_epl", "Fútbol", "Premier League", "Inglaterra"),
+    ("soccer_germany_bundesliga", "Fútbol", "Bundesliga", "Alemania"),
+    ("soccer_france_ligue_one", "Fútbol", "Ligue 1", "Francia"),
+    ("soccer_italy_serie_a", "Fútbol", "Serie A", "Italia"),
+    ("soccer_portugal_primeira_liga", "Fútbol", "Primeira Liga", "Portugal"),
+    ("soccer_belgium_first_div", "Fútbol", "Pro League", "Bélgica"),
+    ("soccer_netherlands_eredivisie", "Fútbol", "Eredivisie", "Países Bajos"),
+    ("soccer_uefa_champs_league", "Fútbol", "Champions League", "Europa"),
+    ("soccer_uefa_europa_league", "Fútbol", "Europa League", "Europa"),
+    ("soccer_fifa_world_cup", "Fútbol", "Mundial", "Internacional"),
+    ("soccer_uefa_euro_championship", "Fútbol", "Eurocopa", "Internacional"),
+    ("soccer_conmebol_copa_america", "Fútbol", "Copa América", "Internacional"),
+    ("basketball_nba", "Baloncesto", "NBA", "USA"),
+    ("basketball_euroleague", "Baloncesto", "Euroleague", "Europa"),
+    ("basketball_spain_acb", "Baloncesto", "Liga ACB", "España")
 ]
-
-MARKETS_TO_QUERY = "h2h,totals,double_chance"
 
 class SportsDataService:
     _remaining_quota: int = -1
@@ -173,21 +203,13 @@ class SportsDataService:
 
     @staticmethod
     def _is_within_time_range(dt: datetime) -> bool:
-        """
-        Verifica si el partido está en el rango 10:00 AM - 11:59 PM.
-        """
-        # Convertimos a hora local (asumiendo +02:00 por el contexto del usuario)
-        hour = dt.hour
-        return 10 <= hour <= 23
+        return 6 <= dt.hour <= 23
 
     @staticmethod
     def quota_status() -> dict:
         return {
             "remaining": SportsDataService._remaining_quota,
-            "last_call": (
-                SportsDataService._last_real_call.isoformat()
-                if SportsDataService._last_real_call else None
-            ),
+            "last_call": (SportsDataService._last_real_call.isoformat() if SportsDataService._last_real_call else None),
         }
 
     @staticmethod
@@ -200,46 +222,60 @@ class SportsDataService:
     async def fetch_real_opportunities() -> List[Opportunity]:
         all_opportunities: List[Opportunity] = []
         
-        # 1. Intentar con The Odds API (si hay llave)
-        if ODDS_API_KEY:
+        # 1. Intentar con The Odds API (Soporte Multi-Key)
+        for key in ODDS_API_KEYS:
+            logger.info(f"Probando The Odds API con clave: {key[:5]}...")
             async with httpx.AsyncClient() as client:
+                found_any = False
                 for league_key, sport_name, league_name, country_name in SUPPORTED_LEAGUES:
                     try:
                         league_opps = await SportsDataService._fetch_league(
-                            client, league_key, sport_name, league_name, country_name
+                            client, league_key, sport_name, league_name, country_name, key
                         )
-                        all_opportunities.extend(league_opps)
+                        if league_opps:
+                            all_opportunities.extend(league_opps)
+                            found_any = True
                     except Exception as e:
-                        logger.warning(f"Error en The Odds API ({league_name}): {e}")
-                        continue
+                        logger.warning(f"Clave {key[:5]} falló para {league_name}: {e}")
+                        break # Probamos la siguiente llave si esta falla
+
+                if found_any:
+                    logger.info(f"Datos obtenidos exitosamente con clave {key[:5]}...")
+                    break # Si obtuvimos algo, no necesitamos seguir rotando
         
-        # 2. Complementar con SportScore (Multideporte Real)
-        if RAPIDAPI_KEY:
+        # 2. Complementar con SportScore (Apoyo híbrido)
+        if RAPIDAPI_KEYS:
             try:
                 ss_opps = await SportScoreService.fetch_opportunities()
                 all_opportunities.extend(ss_opps)
             except Exception as e:
-                logger.error(f"Error en SportScore: {e}")
+                logger.error(f"Error en SportScore (Apoyo): {e}")
 
         SportsDataService._last_real_call = datetime.now(timezone.utc)
         return all_opportunities
 
     @staticmethod
     async def fetch_live_scores() -> List[dict]:
-        if not ODDS_API_KEY:
-            return []
-
+        """Obtención híbrida de resultados en vivo."""
         all_scores = []
-        async with httpx.AsyncClient() as client:
-            for league_key, _, _, _ in SUPPORTED_LEAGUES:
-                url = f"{ODDS_API_BASE}/{league_key}/scores/"
-                params = {"apiKey": ODDS_API_KEY, "daysFrom": 1}
-                try:
-                    resp = await client.get(url, params=params, timeout=10.0)
-                    if resp.status_code == 200:
-                        all_scores.extend(resp.json())
-                except Exception as e:
-                    logger.warning(f"Error scores {league_key}: {e}")
+        
+        # Primero intentamos The Odds API
+        if ODDS_API_KEYS:
+            key = ODDS_API_KEYS[0] # Usamos la principal por ahora para scores
+            async with httpx.AsyncClient() as client:
+                for league_key, _, _, _ in SUPPORTED_LEAGUES:
+                    url = f"{ODDS_API_BASE}/{league_key}/scores/"
+                    try:
+                        resp = await client.get(url, params={"apiKey": key, "daysFrom": 1}, timeout=10.0)
+                        if resp.status_code == 200:
+                            all_scores.extend(resp.json())
+                    except Exception: continue
+        
+        # Si no hay scores o falló, recurrimos a SportScore
+        if not all_scores and RAPIDAPI_KEYS:
+            logger.info("Usando SportScore como apoyo para resultados en vivo...")
+            all_scores = await SportScoreService.fetch_live_scores()
+            
         return all_scores
 
     @staticmethod
@@ -249,46 +285,32 @@ class SportsDataService:
         sport_name: str,
         league_name: str,
         country_name: str,
+        api_key: str
     ) -> List[Opportunity]:
-        # Mercados dinámicos por deporte
-        markets = "h2h,totals"
-        if sport_name == "Fútbol":
-            markets += ",double_chance"
+        markets = "h2h,totals,spreads"
 
         url = f"{ODDS_API_BASE}/{league_key}/odds/"
-        params = {
-            "apiKey": ODDS_API_KEY,
-            "regions": "eu",
-            "markets": markets,
-            "oddsFormat": "decimal",
-        }
+        params = {"apiKey": api_key, "regions": "eu", "markets": markets, "oddsFormat": "decimal"}
 
         try:
             response = await client.get(url, params=params, timeout=15.0)
             SportsDataService._update_quota_from_headers(response.headers)
-            if response.status_code != 200:
-                return []
-        except Exception:
-            return []
+            if response.status_code != 200: return []
+            events = response.json()
+        except Exception: return []
 
-        events = response.json()
-        if not events:
-            return []
-
+        if not events: return []
         now_utc = datetime.now(timezone.utc)
         opportunities: List[Opportunity] = []
-
         for event in events:
             commence_str = event.get("commence_time", "")
             try:
                 commence_dt = datetime.fromisoformat(commence_str.replace("Z", "+00:00"))
-                
                 if not SportsDataService._is_within_time_range(commence_dt):
                     continue
 
                 is_live = False
                 if commence_dt <= now_utc:
-                    # Si empezó hace menos de 3 horas, lo consideramos en directo o reciente
                     if (now_utc - commence_dt).total_seconds() < 10800:
                         is_live = True
                     # Si es de hoy pero empezó hace más tiempo, lo mantenemos como "Jugado"

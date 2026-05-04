@@ -116,8 +116,8 @@ class CC_Engine:
         self.cycle_count = 0
         self._is_real_data = False
         self._real_data_timestamp: str | None = None
-        # Inicializar con datos mock para que el frontend no esté vacío
-        self.current_state: list[Opportunity] = self._generate_opportunities(15)
+        # Inicializar vacío para no enviar datos ficticios
+        self.current_state: list[Opportunity] = []
 
     async def get_current_top10_from_cache(self) -> Top10Response:
         self.cycle_count += 1
@@ -131,46 +131,12 @@ class CC_Engine:
         real_opps = await SportsDataService.fetch_real_opportunities()
 
         if real_opps:
-            # Agrupar por partido
-            matches = {}
-            for opp in real_opps:
-                match_id = f"{opp.home} vs {opp.away}"
-                if match_id not in matches:
-                    matches[match_id] = []
-                matches[match_id].append(opp)
-
-            # Para cada partido, asegurar que tenemos 10 opciones (rellenando con simuladas)
-            final_opps = []
-            for match_id, opps in matches.items():
-                existing_markets = {o.market_category for o in opps}
-                simulated_needed = 10 - len(opps)
-                
-                # Coger una base
-                base = opps[0]
-                added = 0
-                attempts = 0
-                while added < simulated_needed and attempts < 15:
-                    attempts += 1
-                    if base.sport == "Baloncesto":
-                        market_name, market_cat, pred, odds_range = get_random_basket_market(base.home, base.away)
-                    else:
-                        market_name, market_cat, pred, odds_range = get_random_soccer_market(base.home, base.away)
-                    
-                    if market_cat not in existing_markets or market_cat in ["props", "especial", "goleador"]:
-                        existing_markets.add(market_cat)
-                        sim_opp = self._generate_simulated_opp_for_match(base, market_name, market_cat, pred, odds_range)
-                        opps.append(sim_opp)
-                        added += 1
-
-                final_opps.extend(opps[:10])
-
-            self.current_state = final_opps
+            self.current_state = real_opps
             self._is_real_data = True
             self._real_data_timestamp = datetime.utcnow().isoformat() + "Z"
         else:
             logger.warning("API sin datos reales.")
-            final_opps = self._generate_opportunities(15)
-            self.current_state = final_opps
+            self.current_state = []
             self._is_real_data = False
 
         await self.persist_current_state()
@@ -199,7 +165,7 @@ class CC_Engine:
         kelly = round(max(min(kelly_raw * 0.25, 0.05), 0.005), 3)
 
         return Opportunity(
-            id=str(uuid.uuid4()),
+            id=f"mock-{uuid.uuid4()}",
             home=base_opp.home, away=base_opp.away, comp=base_opp.comp, sport=base_opp.sport,
             market=market_name, market_category=market_category,
             prediction=prediction,
@@ -220,13 +186,22 @@ class CC_Engine:
             now + timedelta(days=2)   # Pasado mañana
         ]
 
-        # Ligas de fútbol (Muestra de las VIP)
+        # Ligas de fútbol (Muestra completa de las VIP)
         soccer_leagues = [
             ("LaLiga", "soccer_spain_la_liga", "España"),
+            ("LaLiga 2", "soccer_spain_segunda_division", "España"),
             ("Premier League", "soccer_epl", "Inglaterra"),
-            ("Champions League", "soccer_uefa_champs_league", "Europa"),
+            ("Bundesliga", "soccer_germany_bundesliga", "Alemania"),
+            ("Ligue 1", "soccer_france_ligue_one", "Francia"),
             ("Serie A", "soccer_italy_serie_a", "Italia"),
-            ("Bundesliga", "soccer_germany_bundesliga", "Alemania")
+            ("Primeira Liga", "soccer_portugal_primeira_liga", "Portugal"),
+            ("Pro League", "soccer_belgium_first_div", "Bélgica"),
+            ("Eredivisie", "soccer_netherlands_eredivisie", "Países Bajos"),
+            ("Champions League", "soccer_uefa_champs_league", "Europa"),
+            ("Europa League", "soccer_uefa_europa_league", "Europa"),
+            ("Mundial", "soccer_fifa_world_cup", "Internacional"),
+            ("Eurocopa", "soccer_uefa_euro_championship", "Internacional"),
+            ("Copa América", "soccer_conmebol_copa_america", "Internacional")
         ]
         
         tennis_leagues = [
@@ -247,9 +222,12 @@ class CC_Engine:
                 home, away = random.choice([("Real Madrid", "FC Barcelona"), ("Manchester City", "Arsenal"), ("Juventus", "Inter")])
                 market, cat, pred, odds_range = get_random_soccer_market(home, away)
             elif sport == "Baloncesto":
-                league_name, league_key = "NBA", "basketball_nba"
-                country = "USA"
-                home, away = "Lakers", "Warriors"
+                basket_leagues = [
+                    ("NBA", "basketball_nba", "USA", "Lakers", "Warriors"),
+                    ("Euroleague", "basketball_euroleague", "Europa", "Real Madrid", "Panathinaikos"),
+                    ("Liga ACB", "basketball_spain_acb", "España", "Barcelona", "Baskonia")
+                ]
+                league_name, league_key, country, home, away = random.choice(basket_leagues)
                 market, cat, pred, odds_range = get_random_basket_market(home, away)
             else: # Tenis
                 league_name, league_key, country = random.choice(tennis_leagues)
@@ -260,7 +238,7 @@ class CC_Engine:
             is_live = dt <= now and (now - dt).total_seconds() < 10800
 
             opps.append(Opportunity(
-                id=str(uuid.uuid4()),
+                id=f"mock-{uuid.uuid4()}",
                 home=home,
                 away=away,
                 sport=sport,
@@ -282,9 +260,8 @@ class CC_Engine:
         return opps
 
     async def persist_current_state(self) -> None:
-        if not self.current_state: return
         try:
-            opp_dicts = [opp.model_dump() for opp in self.current_state]
+            opp_dicts = [opp.model_dump() for opp in self.current_state] if self.current_state else []
             FirebaseWrapper.set_top_10(opp_dicts, is_fallback=not self._is_real_data)
         except Exception as e:
             logger.error(f"Error Firestore: {e}")

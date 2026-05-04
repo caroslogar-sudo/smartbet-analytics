@@ -30,9 +30,9 @@ class FirebaseWrapper:
                     cred_dict = json.loads(decoded)
                     cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
-                    print("✅ Firebase inicializado desde Base64")
+                    print("[OK] Firebase inicializado desde Base64")
                 except Exception as e:
-                    print(f"❌ Error parsing FIREBASE_CREDENTIALS_BASE64: {e}")
+                    print(f"[ERROR] Error parsing FIREBASE_CREDENTIALS_BASE64: {e}")
                     return
                     
             elif cred_json:
@@ -40,32 +40,32 @@ class FirebaseWrapper:
                     cred_dict = json.loads(cred_json)
                     cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
-                    print("✅ Firebase inicializado desde JSON")
+                    print("[OK] Firebase inicializado desde JSON")
                 except Exception as e:
-                    print(f"❌ Error parsing FIREBASE_CREDENTIALS_JSON: {e}")
+                    print(f"[ERROR] Error parsing FIREBASE_CREDENTIALS_JSON: {e}")
                     return
                     
             elif os.path.exists(cred_path):
                 try:
                     cred = credentials.Certificate(cred_path)
                     firebase_admin.initialize_app(cred)
-                    print("✅ Firebase inicializado desde archivo")
+                    print("[OK] Firebase inicializado desde archivo")
                 except Exception as e:
-                    print(f"❌ Error con archivo {cred_path}: {e}")
+                    print(f"[ERROR] Error con archivo {cred_path}: {e}")
                     return
             else:
                 try:
                     firebase_admin.initialize_app()
-                    print("✅ Firebase inicializado con credenciales por defecto")
+                    print("[OK] Firebase inicializado con credenciales por defecto")
                 except Exception as e:
-                    print(f"⚠️ Firebase no pudo inicializarse: {e}")
+                    print(f"[WARN] Firebase no pudo inicializarse: {e}")
                     return
 
         try:
             cls._db = firestore.client()
-            print("✅ Firestore client inicializado")
+            print("[OK] Firestore client inicializado")
         except Exception as e:
-            print(f"⚠️ No se pudo inicializar Firestore: {e}")
+            print(f"[WARN] No se pudo inicializar Firestore: {e}")
             cls._db = None
 
     @classmethod
@@ -82,7 +82,7 @@ class FirebaseWrapper:
     def set_top_10(cls, opportunities: List[Dict[str, Any]], is_fallback: bool = False):
         db = cls.get_db()
         if not db:
-            print("⚠️ No hay conexión a Firestore")
+            print("[WARN] No hay conexión a Firestore")
             return
 
         try:
@@ -92,9 +92,9 @@ class FirebaseWrapper:
                 "updated_at": firestore.SERVER_TIMESTAMP,
                 "is_fallback": is_fallback,
             })
-            print(f"✅ Top 10 actualizado ({len(opportunities)} oportunidades)")
+            print(f"[OK] Top 10 actualizado ({len(opportunities)} oportunidades)")
         except Exception as e:
-            print(f"❌ Error al actualizar top 10: {e}")
+            print(f"[ERROR] Error al actualizar top 10: {e}")
 
     @classmethod
     def set_live_data(cls, live_matches: List[Dict], finished_matches: List[Dict]):
@@ -110,7 +110,7 @@ class FirebaseWrapper:
                 "updated_at": firestore.SERVER_TIMESTAMP
             })
         except Exception as e:
-            print(f"❌ Error al actualizar live data: {e}")
+            print(f"[ERROR] Error al actualizar live data: {e}")
 
     @classmethod
     def update_opportunity(cls, opp_id: str, data: Dict[str, Any]):
@@ -121,7 +121,7 @@ class FirebaseWrapper:
         try:
             db.collection("opportunities").document(opp_id).set(data, merge=True)
         except Exception as e:
-            print(f"❌ Error al actualizar oportunidad {opp_id}: {e}")
+            print(f"[ERROR] Error al actualizar oportunidad {opp_id}: {e}")
 
     @classmethod
     def batch_update_opportunities(cls, opportunities: List[Dict[str, Any]]):
@@ -135,9 +135,9 @@ class FirebaseWrapper:
                 doc_ref = db.collection("opportunities").document(opp["id"])
                 batch.set(doc_ref, opp, merge=True)
             batch.commit()
-            print(f"✅ Batch actualizado ({len(opportunities)} oportunidades)")
+            print(f"[OK] Batch actualizado ({len(opportunities)} oportunidades)")
         except Exception as e:
-            print(f"❌ Error en batch update: {e}")
+            print(f"[ERROR] Error en batch update: {e}")
 
     @classmethod
     def delete_old_opportunities(cls, hours_threshold: int = 48):
@@ -166,7 +166,7 @@ class FirebaseWrapper:
                 
             return count
         except Exception as e:
-            print(f"❌ Error al eliminar oportunidades antiguas: {e}")
+            print(f"[ERROR] Error al eliminar oportunidades antiguas: {e}")
             return 0
 
 

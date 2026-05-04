@@ -45,8 +45,8 @@ const SPORTS_DATA: Record<string, {
   markets: [string, MarketCategory, string][];
 }> = {
   "Fútbol": {
-    teams: ["R. Madrid", "Barcelona", "Liverpool", "Arsenal", "Bayern", "PSG", "Sevilla"],
-    comps: ["LaLiga", "Premier League", "Champions League", "Bundesliga"],
+    teams: ["R. Madrid", "Barcelona", "Liverpool", "Arsenal", "Bayern", "PSG", "Sevilla", "Juventus", "Inter", "AC Milan", "Porto", "Benfica", "Ajax", "PSV", "España", "Brasil", "Argentina", "Francia", "Inglaterra"],
+    comps: ["LaLiga", "LaLiga 2", "Premier League", "Bundesliga", "Ligue 1", "Serie A", "Primeira Liga", "Pro League", "Eredivisie", "Champions League", "Europa League", "Mundial", "Eurocopa", "Copa América"],
     markets: [
       ["Ganador Partido",   "ganador",   "Victoria Local"],
       ["Total Goles",       "goles",     "Over 2.5"],
@@ -58,8 +58,8 @@ const SPORTS_DATA: Record<string, {
     ],
   },
   "Baloncesto": {
-    teams: ["Lakers", "Celtics", "Warriors", "Bulls", "Real Madrid", "Panathinaikos"],
-    comps: ["NBA", "Euroliga", "ACB"],
+    teams: ["Lakers", "Celtics", "Warriors", "Bulls", "Real Madrid", "Panathinaikos", "Barcelona", "Olympiacos", "Maccabi"],
+    comps: ["NBA", "Euroleague", "Liga ACB"],
     markets: [
       ["Ganador",       "ganador",  "Victoria Local"],
       ["Total Puntos",  "goles",    "Over 224.5"],
@@ -88,7 +88,7 @@ const SPORTS_DATA: Record<string, {
 
 const BOOKMAKER_NAMES = ["Bet365", "Bwin", "Betfair", "Sportium", "Pinnacle"];
 
-const generateMockOpportunities = (): Opportunity[] => {
+export const generateMockOpportunities = (): Opportunity[] => {
   const sportsKeys = Object.keys(SPORTS_DATA);
   return Array.from({ length: 48 }).map((_, index) => {
     const sport = sportsKeys[index % sportsKeys.length];
@@ -139,25 +139,25 @@ export const useLiveTop10 = () => {
           setDataSource('firestore');
           setError(null);
         } else {
-          console.info("ℹ️ Firestore sin datos aún. Usando datos demo temporales.");
-          setOpportunities(generateMockOpportunities());
+          console.info("ℹ️ Firestore vacío. Mostrando lista vacía para datos reales.");
+          setOpportunities([]);
           setDataSource('empty_firestore');
-          setError("El servidor está iniciando. Mostrando datos de demostración.");
+          setError(null);
         }
         setIsConnected(true);
       },
       (firestoreError) => {
         console.warn("Firestore error:", firestoreError.message);
-        setOpportunities(generateMockOpportunities());
+        setOpportunities([]);
         setDataSource('mock');
         setIsConnected(true);
-        setError("Error de conexión. Mostrando datos de demostración.");
+        setError("Error de conexión. Mostrando lista vacía.");
       }
     );
 
     if (!subscription.isRealConnection) {
-      console.info("🔌 Firestore no configurado. Modo offline con datos demo.");
-      setOpportunities(generateMockOpportunities());
+      console.info("🔌 Firestore no configurado. Modo offline (lista vacía).");
+      setOpportunities([]);
       setDataSource('mock');
       setIsConnected(true);
     }
@@ -171,7 +171,7 @@ export const useLiveTop10 = () => {
     setIsConnected(false);
     setTimeout(() => {
       if (dataSource === 'mock' || dataSource === 'empty_firestore') {
-        setOpportunities(generateMockOpportunities());
+        setOpportunities([]);
       }
       setIsConnected(true);
     }, 1500);
