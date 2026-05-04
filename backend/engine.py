@@ -121,12 +121,22 @@ class CC_Engine:
 
     async def get_current_top10_from_cache(self) -> Top10Response:
         self.cycle_count += 1
-        # Por simplicidad, siempre llamaremos a los datos almacenados
+        
+        # Si la memoria está vacía, intentamos cargar desde Firestore
+        if not self.current_state:
+            logger.info("Cargando estado inicial desde Firestore...")
+            db_opps = FirebaseWrapper.get_top_10()
+            if db_opps:
+                from models import Opportunity
+                self.current_state = [Opportunity(**o) for o in db_opps]
+                self._is_real_data = True
+                logger.info(f"Cargado: {len(self.current_state)} oportunidades desde Firestore.")
+
         return self._build_response()
 
     async def get_current_top10_real(self) -> Top10Response:
         self.cycle_count += 1
-        logger.info(f"Ciclo {self.cycle_count}: solicitando datos REALES.")
+        logger.info(f"Ciclo {self.cycle_count}: solicitando datos REALES de toda la parrilla.")
 
         real_opps = await SportsDataService.fetch_real_opportunities()
 
@@ -134,11 +144,7 @@ class CC_Engine:
             self.current_state = real_opps
             self._is_real_data = True
             self._real_data_timestamp = datetime.utcnow().isoformat() + "Z"
-        else:
-            logger.warning("API sin datos reales.")
-            self.current_state = []
-            self._is_real_data = False
-
+        
         await self.persist_current_state()
         return self._build_response()
 

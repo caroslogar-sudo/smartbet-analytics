@@ -97,6 +97,21 @@ class FirebaseWrapper:
             print(f"[ERROR] Error al actualizar top 10: {e}")
 
     @classmethod
+    def get_top_10(cls) -> List[Dict[str, Any]]:
+        db = cls.get_db()
+        if not db:
+            return []
+        try:
+            doc_ref = db.collection("realtime").document("top10")
+            snap = doc_ref.get()
+            if snap.exists:
+                return snap.to_dict().get("opportunities", [])
+            return []
+        except Exception as e:
+            print(f"[ERROR] Error al recuperar top 10: {e}")
+            return []
+
+    @classmethod
     def set_live_data(cls, live_matches: List[Dict], finished_matches: List[Dict]):
         db = cls.get_db()
         if not db:
