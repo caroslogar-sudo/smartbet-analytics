@@ -59,8 +59,6 @@ async def run_engine_cycle_loop() -> None:
         logger.error("Error en estado inicial: %s", exc)
 
     while True:
-        await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
-
         now_utc = datetime.now(timezone.utc)
         logger.info("=== Ciclo scheduler %s UTC ===", now_utc.strftime("%Y-%m-%d %H:%M"))
 
@@ -74,6 +72,7 @@ async def run_engine_cycle_loop() -> None:
                     remaining,
                 )
                 await engine.persist_current_state()
+                await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
                 continue
 
             # ── 2. Liga del turno (1 crédito) ─────────────────────────────────
@@ -126,3 +125,6 @@ async def run_engine_cycle_loop() -> None:
 
         except Exception as exc:
             logger.error("Error inesperado en ciclo scheduler: %s", exc)
+
+        # Esperar al siguiente ciclo
+        await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
